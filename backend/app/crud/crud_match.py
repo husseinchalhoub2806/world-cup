@@ -19,13 +19,13 @@ def get_all_matches(db: Session) -> list[Match]:
 def get_visible_matches(db: Session) -> list[Match]:
     """
     Regular users see a match when:
-    - It starts within the next 12 hours (visibility window), OR
+    - It starts within the next 240 hours (visibility window), OR
     - It is live or finished (so users can see ongoing/completed matches)
 
     Cancelled matches are hidden from regular users.
     """
     now = datetime.now(timezone.utc).replace(tzinfo=None)  # Naive UTC for DB comparison
-    visibility_cutoff = now + timedelta(hours=12)
+    visibility_cutoff = now + timedelta(hours=240)
 
     return (
         db.query(Match)

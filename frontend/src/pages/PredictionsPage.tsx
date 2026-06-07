@@ -44,7 +44,7 @@ export default function PredictionsPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-3xl font-black" style={{ color: "#fff", textShadow: "0 2px 12px rgba(0,0,0,0.5)" }}>Predictions</h1>
-          <p className="mt-1" style={{ color: "#fff", opacity: 0.8, textShadow: "0 1px 6px rgba(0,0,0,0.4)" }}>Matches visible 12 hours before kickoff</p>
+          <p className="mt-1" style={{ color: "#fff", opacity: 0.8, textShadow: "0 1px 6px rgba(0,0,0,0.4)" }}>Matches visible 10 days before kickoff</p>
         </div>
       </div>
 

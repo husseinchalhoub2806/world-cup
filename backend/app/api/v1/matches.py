@@ -15,7 +15,7 @@ def list_matches(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_approved_user),
 ):
-    """Returns matches visible to the current user (within 12h window or live/finished)."""
+    """Returns matches visible to the current user (within 240h window or live/finished)."""
     return get_visible_matches(db)
 
 
@@ -35,7 +35,7 @@ def get_match(
 
     if current_user.role.value != "admin":
         now = datetime.now(timezone.utc).replace(tzinfo=None)
-        visibility_cutoff = now + timedelta(hours=12)
+        visibility_cutoff = now + timedelta(hours=240)
         is_visible = (
             match.match_datetime <= visibility_cutoff
             or match.status in (MatchStatus.live, MatchStatus.finished)
