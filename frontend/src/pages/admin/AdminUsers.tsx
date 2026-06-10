@@ -1,13 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle, Trash2, XCircle } from "lucide-react";
+import { CheckCircle, Shield, ShieldOff, Trash2, XCircle } from "lucide-react";
 import toast from "react-hot-toast";
 import { adminApi } from "../../api/admin";
 import { getErrorMessage } from "../../api/client";
+import { useAuthStore } from "../../store/authStore";
 import type { User } from "../../types";
 import { format, parseISO } from "date-fns";
 
 function UserRow({ user }: { user: User }) {
   const queryClient = useQueryClient();
+  const selfId = useAuthStore((s) => s.user?.id);
+  const isSelf = user.id === selfId;
 
   const approveMutation = useMutation({
     mutationFn: () => adminApi.updateUser(user.id, { status: "approved" }),
@@ -23,6 +26,20 @@ function UserRow({ user }: { user: User }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
       toast.success(`${user.nickname} rejected`);
+    },
+    onError: (err) => toast.error(getErrorMessage(err)),
+  });
+
+  const roleMutation = useMutation({
+    mutationFn: () => adminApi.updateUser(user.id, {
+      role: user.role === "admin" ? "regular_user" : "admin",
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      toast.success(user.role === "admin"
+        ? `${user.nickname} is no longer an admin`
+        : `${user.nickname} is now an admin`
+      );
     },
     onError: (err) => toast.error(getErrorMessage(err)),
   });
@@ -45,14 +62,16 @@ function UserRow({ user }: { user: User }) {
   return (
     <tr className="border-b border-gray-800 hover:bg-gray-800/30 transition-colors">
       <td className="py-3 pr-4">
-        <div className="font-semibold text-white">{user.nickname}</div>
+        <div className="font-semibold text-black">{user.nickname}</div>
         <div className="text-xs text-gray-500">{user.real_name}</div>
       </td>
       <td className="py-3 pr-4">
         <span className={statusBadge[user.status]}>{user.status}</span>
       </td>
-      <td className="py-3 pr-4 text-gray-400 text-sm">
-        {user.role === "admin" ? <span className="text-amber-400">Admin</span> : "Player"}
+      <td className="py-3 pr-4 text-sm">
+        {user.role === "admin"
+          ? <span className="text-amber-400 font-medium">Admin{isSelf && " (you)"}</span>
+          : <span className="text-gray-400">Player</span>}
       </td>
       <td className="py-3 pr-4 text-gray-500 text-xs">
         {format(parseISO(user.created_at + (user.created_at.endsWith("Z") ? "" : "Z")), "d MMM yyyy")}
@@ -97,6 +116,23 @@ function UserRow({ user }: { user: User }) {
               title="Suspend"
             >
               <XCircle size={18} />
+            </button>
+          )}
+          {!isSelf && (
+            <button
+              onClick={() => {
+                const msg = user.role === "admin"
+                  ? `Remove admin rights from "${user.nickname}"?`
+                  : `Give admin rights to "${user.nickname}"?`;
+                if (confirm(msg)) roleMutation.mutate();
+              }}
+              disabled={roleMutation.isPending}
+              className={user.role === "admin"
+                ? "text-amber-500 hover:text-amber-300 transition-colors"
+                : "text-gray-500 hover:text-amber-400 transition-colors"}
+              title={user.role === "admin" ? "Remove admin" : "Make admin"}
+            >
+              {user.role === "admin" ? <ShieldOff size={16} /> : <Shield size={16} />}
             </button>
           )}
           {user.role !== "admin" && (

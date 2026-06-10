@@ -15,7 +15,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models.prediction import Prediction
-from app.models.user import User, UserRole, UserStatus
+from app.models.user import User, UserStatus
 from app.schemas.leaderboard import LeaderboardEntry, LeaderboardResponse
 
 
@@ -30,7 +30,6 @@ def get_leaderboard(db: Session) -> LeaderboardResponse:
             func.count(Prediction.id).label("prediction_count"),
         )
         .outerjoin(Prediction, Prediction.user_id == User.id)
-        .where(User.role == UserRole.regular_user)
         .where(User.status == UserStatus.approved)
         .group_by(User.id, User.nickname, User.real_name)
     )

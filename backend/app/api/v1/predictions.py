@@ -59,7 +59,7 @@ def submit_prediction(
             detail="Predictions are closed for this match",
         )
 
-    # Server-side kickoff lock — compare UTC naive datetimes
+    # Lock at kickoff — compare UTC naive datetimes
     now = datetime.now(timezone.utc).replace(tzinfo=None)
     if now >= match.match_datetime:
         raise HTTPException(

@@ -9,6 +9,7 @@ from app.db.session import Base
 
 
 class MatchStatus(str, enum.Enum):
+    draft = "draft"
     scheduled = "scheduled"
     live = "live"
     finished = "finished"
@@ -21,6 +22,7 @@ class Match(Base):
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     team1: Mapped[str] = mapped_column(String(100), nullable=False)
     team2: Mapped[str] = mapped_column(String(100), nullable=False)
+    external_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, index=True)
 
     # Stored as UTC naive datetime
     match_datetime: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)

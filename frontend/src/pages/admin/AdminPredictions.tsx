@@ -37,10 +37,10 @@ export default function AdminPredictions() {
               <div key={key} className="card">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h3 className="font-bold text-white">
+                    <h3 className="font-bold text-black">
                       {first.match_team1} vs {first.match_team2}
                     </h3>
-                    <p className="text-xs text-gray-500">{formatMatchDateTime(first.match_datetime)}</p>
+                    <p className="text-xs text-gray-400">{formatMatchDateTime(first.match_datetime)}</p>
                   </div>
                   <span className={`text-xs px-2.5 py-0.5 rounded-full ${
                     first.match_status === "finished"
@@ -63,12 +63,15 @@ export default function AdminPredictions() {
                     <tbody className="divide-y divide-gray-800/50">
                       {preds.map((p) => (
                         <tr key={p.id} className="hover:bg-gray-800/20">
-                          <td className="py-2 pr-4 text-gray-300">User #{p.user_id}</td>
+                          <td className="py-2 pr-4">
+                            <span className="font-medium text-gray-100">{p.user_real_name}</span>
+                            <span className="text-gray-500 text-xs ml-1">({p.user_nickname})</span>
+                          </td>
                           <td className="py-2 pr-4 text-center">
-                            <span className="text-white font-mono">
+                            <span className="text-gray-100 font-mono font-semibold">
                               {p.predicted_score_team1} – {p.predicted_score_team2}
                             </span>
-                            <span className="text-gray-500 text-xs ml-2">
+                            <span className="text-gray-400 text-xs ml-2">
                               ({p.predicted_winner === "team1"
                                 ? first.match_team1
                                 : p.predicted_winner === "team2"

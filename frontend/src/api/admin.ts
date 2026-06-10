@@ -1,6 +1,11 @@
 import { apiClient } from "./client";
 import type { LeaderboardResponse, Match, PredictionWithMatch, User, UserRole, UserStatus } from "../types";
 
+export interface MatchImportResponse {
+  imported: number;
+  skipped: number;
+}
+
 export interface MatchCreateInput {
   team1: string;
   team2: string;
@@ -57,6 +62,26 @@ export const adminApi = {
 
   enterResult: async (matchId: number, data: MatchResultInput): Promise<Match> => {
     const resp = await apiClient.post<Match>(`/admin/matches/${matchId}/result`, data);
+    return resp.data;
+  },
+
+  importMatches: async (): Promise<MatchImportResponse> => {
+    const resp = await apiClient.post<MatchImportResponse>("/admin/matches/import");
+    return resp.data;
+  },
+
+  approveMatch: async (matchId: number): Promise<Match> => {
+    const resp = await apiClient.post<Match>(`/admin/matches/${matchId}/approve`);
+    return resp.data;
+  },
+
+  approveAllMatches: async (): Promise<{ approved: number }> => {
+    const resp = await apiClient.post<{ approved: number }>("/admin/matches/approve-all");
+    return resp.data;
+  },
+
+  importResults: async (): Promise<{ updated: number; skipped: number; not_found: number }> => {
+    const resp = await apiClient.post<{ updated: number; skipped: number; not_found: number }>("/admin/matches/import-results");
     return resp.data;
   },
 

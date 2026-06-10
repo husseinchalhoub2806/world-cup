@@ -129,6 +129,9 @@ ADMIN_REAL_NAME=Hussein
 # App settings
 DEBUG=false
 CORS_ORIGINS=http://YOUR_SERVER_IP        # use your actual IP here
+
+# TheSportsDB — free tier key is "3"; get a Patreon key for higher rate limits
+SPORTSDB_API_KEY=3
 ```
 
 **To generate a secure SECRET_KEY**, open a second terminal and run:
@@ -329,6 +332,9 @@ The `--build` flag rebuilds the containers with your new code. The database is p
 | `ADMIN_REAL_NAME` | Admin display name | `Hussein` |
 | `CORS_ORIGINS` | Allowed frontend origins | `https://yourdomain.com` |
 | `DEBUG` | Enable debug mode | `false` (always in production) |
+| `SPORTSDB_API_KEY` | TheSportsDB key for match import | `3` (free) or Patreon key |
+| `SPORTSDB_LEAGUE_ID` | League to import (optional) | `4429` (FIFA World Cup) |
+| `SPORTSDB_SEASON` | Season to import (optional) | `2026` |
 
 **To change a variable after first deploy:**
 ```bash

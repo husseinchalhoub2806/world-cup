@@ -1,6 +1,6 @@
 export type UserRole = "admin" | "regular_user";
 export type UserStatus = "pending" | "approved" | "rejected";
-export type MatchStatus = "scheduled" | "live" | "finished" | "cancelled";
+export type MatchStatus = "draft" | "scheduled" | "live" | "finished" | "cancelled";
 export type PredictedWinner = "team1" | "team2" | "tie";
 
 export interface User {
@@ -20,6 +20,7 @@ export interface Match {
   status: MatchStatus;
   score_team1: number | null;
   score_team2: number | null;
+  external_id: string | null;
   created_at: string;
 }
 
@@ -39,6 +40,8 @@ export interface PredictionWithMatch extends Prediction {
   match_team2: string;
   match_datetime: string;
   match_status: MatchStatus;
+  user_nickname: string;
+  user_real_name: string;
 }
 
 export interface LeaderboardEntry {

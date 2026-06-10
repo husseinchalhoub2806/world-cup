@@ -11,6 +11,10 @@ def get_match_by_id(db: Session, match_id: int) -> Optional[Match]:
     return db.query(Match).filter(Match.id == match_id).first()
 
 
+def get_match_by_external_id(db: Session, external_id: str) -> Optional[Match]:
+    return db.query(Match).filter(Match.external_id == external_id).first()
+
+
 def get_all_matches(db: Session) -> list[Match]:
     """Admin: all matches regardless of visibility window."""
     return db.query(Match).order_by(Match.match_datetime.asc()).all()
@@ -22,7 +26,7 @@ def get_visible_matches(db: Session) -> list[Match]:
     - It starts within the next 240 hours (visibility window), OR
     - It is live or finished (so users can see ongoing/completed matches)
 
-    Cancelled matches are hidden from regular users.
+    Draft and cancelled matches are hidden from regular users.
     """
     now = datetime.now(timezone.utc).replace(tzinfo=None)  # Naive UTC for DB comparison
     visibility_cutoff = now + timedelta(hours=240)
@@ -31,6 +35,7 @@ def get_visible_matches(db: Session) -> list[Match]:
         db.query(Match)
         .filter(
             Match.status != MatchStatus.cancelled,
+            Match.status != MatchStatus.draft,
             (Match.match_datetime <= visibility_cutoff)
             | Match.status.in_([MatchStatus.live, MatchStatus.finished]),
         )
@@ -50,6 +55,43 @@ def create_match(db: Session, data: MatchCreate) -> Match:
     db.commit()
     db.refresh(match)
     return match
+
+
+def create_draft_match(
+    db: Session,
+    external_id: str,
+    team1: str,
+    team2: str,
+    match_datetime: datetime,
+) -> Match:
+    match = Match(
+        team1=team1,
+        team2=team2,
+        match_datetime=match_datetime,
+        status=MatchStatus.draft,
+        external_id=external_id,
+    )
+    db.add(match)
+    db.commit()
+    db.refresh(match)
+    return match
+
+
+def approve_draft_match(db: Session, match: Match) -> Match:
+    match.status = MatchStatus.scheduled
+    db.commit()
+    db.refresh(match)
+    return match
+
+
+def approve_all_draft_matches(db: Session) -> int:
+    count = (
+        db.query(Match)
+        .filter(Match.status == MatchStatus.draft)
+        .update({"status": MatchStatus.scheduled})
+    )
+    db.commit()
+    return count
 
 
 def update_match(db: Session, match: Match, data: MatchUpdate) -> Match:

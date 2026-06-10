@@ -4,9 +4,13 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_admin, get_db
 from app.crud.crud_match import (
+    approve_all_draft_matches,
+    approve_draft_match,
+    create_draft_match,
     create_match,
     delete_match,
     get_all_matches,
+    get_match_by_external_id,
     get_match_by_id,
     set_match_result,
     update_match,
@@ -21,7 +25,7 @@ from app.crud.crud_user import (
 )
 from app.models.user import User, UserRole, UserStatus
 from app.schemas.leaderboard import LeaderboardResponse
-from app.schemas.match import MatchCreate, MatchResponse, MatchResultInput, MatchUpdate
+from app.schemas.match import MatchCreate, MatchImportResponse, MatchResponse, MatchResultInput, MatchScoreImportResponse, MatchUpdate
 from app.schemas.prediction import PredictionResponse, PredictionWithMatchResponse
 from app.schemas.user import AdminUserUpdate, UserResponse
 from app.services.leaderboard_service import get_leaderboard
@@ -136,6 +140,123 @@ def remove_match(
     delete_match(db, match)
 
 
+@router.post("/matches/import", response_model=MatchImportResponse)
+def import_matches_from_api(
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_current_admin),
+):
+    """Fetch World Cup fixtures from api-football.com and create them as draft matches."""
+    from app.services.sportsdb_service import SportsDbError, fetch_world_cup_fixtures
+
+    try:
+        fixtures = fetch_world_cup_fixtures()
+    except SportsDbError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc))
+
+    imported = 0
+    skipped = 0
+    for fixture in fixtures:
+        if get_match_by_external_id(db, fixture["external_id"]):
+            skipped += 1
+            continue
+        create_draft_match(
+            db,
+            external_id=fixture["external_id"],
+            team1=fixture["team1"],
+            team2=fixture["team2"],
+            match_datetime=fixture["match_datetime"],
+        )
+        imported += 1
+
+    logger.info(
+        "Admin {} imported {} draft matches from api-football ({} already existed)",
+        admin.nickname, imported, skipped,
+    )
+    return {"imported": imported, "skipped": skipped}
+
+
+@router.post("/matches/import-results", response_model=MatchScoreImportResponse)
+def import_results_from_api(
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_current_admin),
+):
+    """Fetch finished fixtures from TheSportsDB and auto-score any unscored matches."""
+    from app.models.match import MatchStatus as MS
+    from app.services.sportsdb_service import SportsDbError, fetch_world_cup_fixtures
+
+    try:
+        fixtures = fetch_world_cup_fixtures()
+    except SportsDbError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc))
+
+    updated = skipped = not_found = 0
+
+    for fixture in fixtures:
+        if fixture["score_team1"] is None or fixture["score_team2"] is None:
+            continue  # match not played yet
+
+        match = get_match_by_external_id(db, fixture["external_id"])
+        if not match:
+            not_found += 1
+            continue
+
+        if match.status == MS.finished:
+            skipped += 1
+            continue
+
+        match = set_match_result(db, match, fixture["score_team1"], fixture["score_team2"])
+        scored_count = score_match(db, match)
+        updated += 1
+        logger.info(
+            "Admin {} imported result for match {} ({} vs {}): {}-{}. Scored {} predictions.",
+            admin.nickname, match.id, match.team1, match.team2,
+            fixture["score_team1"], fixture["score_team2"], scored_count,
+        )
+
+    logger.info(
+        "Admin {} bulk-imported results: {} updated, {} skipped, {} not found",
+        admin.nickname, updated, skipped, not_found,
+    )
+    return {"updated": updated, "skipped": skipped, "not_found": not_found}
+
+
+@router.post("/matches/{match_id}/approve", response_model=MatchResponse)
+def approve_match(
+    match_id: int,
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_current_admin),
+):
+    """Approve a draft match — sets status to scheduled, making it visible to users."""
+    match = get_match_by_id(db, match_id)
+    if not match:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Match not found")
+
+    from app.models.match import MatchStatus as MS
+    if match.status != MS.draft:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only draft matches can be approved",
+        )
+
+    match = approve_draft_match(db, match)
+    logger.info(
+        "Admin {} approved draft match {}: {} vs {} @ {}",
+        admin.nickname, match_id, match.team1, match.team2, match.match_datetime,
+    )
+    return match
+
+
+@router.post("/matches/approve-all", response_model=dict)
+def approve_all_matches(
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_current_admin),
+):
+    """Approve all draft matches at once."""
+    count = approve_all_draft_matches(db)
+    logger.info("Admin {} bulk-approved {} draft matches", admin.nickname, count)
+    return {"approved": count}
+
+
 @router.post("/matches/{match_id}/result", response_model=MatchResponse)
 def enter_match_result(
     match_id: int,
@@ -149,10 +270,10 @@ def enter_match_result(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Match not found")
 
     from app.models.match import MatchStatus
-    if match.status == MatchStatus.cancelled:
+    if match.status in (MatchStatus.cancelled, MatchStatus.draft):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot set result for a cancelled match",
+            detail="Cannot set result for a cancelled or draft match",
         )
 
     match = set_match_result(db, match, result.score_team1, result.score_team2)
@@ -190,6 +311,8 @@ def list_all_predictions(
                 match_team2=p.match.team2,
                 match_datetime=p.match.match_datetime,
                 match_status=p.match.status.value,
+                user_nickname=p.user.nickname,
+                user_real_name=p.user.real_name,
             )
         )
     return result

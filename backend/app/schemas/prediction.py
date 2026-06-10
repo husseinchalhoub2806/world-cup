@@ -47,8 +47,10 @@ class PredictionResponse(BaseModel):
 
 
 class PredictionWithMatchResponse(PredictionResponse):
-    """Prediction enriched with match data — used in user-facing predictions list."""
+    """Prediction enriched with match data. User fields only populated in admin context."""
     match_team1: str
     match_team2: str
     match_datetime: datetime
     match_status: str
+    user_nickname: Optional[str] = None
+    user_real_name: Optional[str] = None

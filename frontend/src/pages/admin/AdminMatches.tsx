@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Edit2, Plus, Trash2, Trophy } from "lucide-react";
+import { Check, Download, Edit2, Plus, RefreshCw, Trash2, Trophy, X } from "lucide-react";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import toast from "react-hot-toast";
@@ -202,83 +202,223 @@ export default function AdminMatches() {
     onError: (err) => toast.error(getErrorMessage(err)),
   });
 
+  const importMutation = useMutation({
+    mutationFn: adminApi.importMatches,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-matches"] });
+      if (data.imported === 0) {
+        toast.success(`No new matches — ${data.skipped} already imported`);
+      } else {
+        toast.success(`Imported ${data.imported} draft matches${data.skipped > 0 ? ` (${data.skipped} skipped)` : ""}`);
+      }
+    },
+    onError: (err) => toast.error(getErrorMessage(err)),
+  });
+
+  const approveMutation = useMutation({
+    mutationFn: adminApi.approveMatch,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-matches"] });
+      toast.success("Match approved and scheduled");
+    },
+    onError: (err) => toast.error(getErrorMessage(err)),
+  });
+
+  const importResultsMutation = useMutation({
+    mutationFn: adminApi.importResults,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-matches"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-leaderboard"] });
+      if (data.updated === 0) {
+        toast.success("No new results to import");
+      } else {
+        toast.success(`${data.updated} result${data.updated !== 1 ? "s" : ""} imported and scored`);
+      }
+    },
+    onError: (err) => toast.error(getErrorMessage(err)),
+  });
+
+  const approveAllMutation = useMutation({
+    mutationFn: adminApi.approveAllMatches,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-matches"] });
+      toast.success(`${data.approved} matches approved`);
+    },
+    onError: (err) => toast.error(getErrorMessage(err)),
+  });
+
   const statusColors: Record<string, string> = {
+    draft: "bg-blue-900/60 text-blue-300 text-xs px-2.5 py-0.5 rounded-full",
     scheduled: "badge-scheduled",
     live: "badge-live",
     finished: "badge-finished",
     cancelled: "bg-gray-800 text-gray-500 text-xs px-2.5 py-0.5 rounded-full",
   };
 
+  const draftMatches = matches.filter((m) => m.status === "draft");
+  const regularMatches = matches.filter((m) => m.status !== "draft");
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-black text-white">Matches</h1>
-        <button onClick={() => setShowCreate(true)} className="btn-gold flex items-center gap-2 text-sm">
-          <Plus size={16} /> Create Match
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => importResultsMutation.mutate()}
+            disabled={importResultsMutation.isPending}
+            className="btn-secondary flex items-center gap-2 text-sm"
+            title="Fetch finished match scores from TheSportsDB and auto-score predictions"
+          >
+            <RefreshCw size={16} />
+            {importResultsMutation.isPending ? "Importing..." : "Import Scores"}
+          </button>
+          <button
+            onClick={() => importMutation.mutate()}
+            disabled={importMutation.isPending}
+            className="btn-secondary flex items-center gap-2 text-sm"
+            title="Fetch World Cup fixtures from TheSportsDB"
+          >
+            <Download size={16} />
+            {importMutation.isPending ? "Importing..." : "Import Fixtures"}
+          </button>
+          <button onClick={() => setShowCreate(true)} className="btn-gold flex items-center gap-2 text-sm">
+            <Plus size={16} /> Create Match
+          </button>
+        </div>
       </div>
 
       {isLoading ? (
         <p className="text-gray-500">Loading...</p>
-      ) : matches.length === 0 ? (
-        <div className="card text-center py-12">
-          <p className="text-gray-500">No matches yet. Create the first one!</p>
-        </div>
       ) : (
-        <div className="space-y-3">
-          {matches.map((match) => (
-            <div key={match.id} className="card-sm hover:border-gray-700 transition-colors">
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-1">
-                    <span className="font-bold text-white">
-                      {match.team1} vs {match.team2}
-                    </span>
-                    <span className={statusColors[match.status]}>{match.status}</span>
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    {formatMatchDateTime(match.match_datetime)}
-                    {match.status === "finished" && match.score_team1 !== null && (
-                      <span className="ml-3 text-white font-bold">
-                        {match.score_team1} – {match.score_team2}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {match.status !== "finished" && match.status !== "cancelled" && (
-                    <button
-                      onClick={() => setResultMatch(match)}
-                      className="flex items-center gap-1 text-xs bg-gold-600/20 hover:bg-gold-600/40 text-gold-400 px-2.5 py-1.5 rounded-lg transition-colors"
-                      title="Enter result"
-                    >
-                      <Trophy size={13} />
-                      Result
-                    </button>
-                  )}
-                  <button
-                    onClick={() => setEditMatch(match)}
-                    className="text-gray-400 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-gray-700"
-                    title="Edit"
-                  >
-                    <Edit2 size={15} />
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (confirm("Delete this match? All predictions will be lost.")) {
-                        deleteMutation.mutate(match.id);
-                      }
-                    }}
-                    className="text-red-600 hover:text-red-400 transition-colors p-1.5 rounded-lg hover:bg-gray-700"
-                    title="Delete"
-                  >
-                    <Trash2 size={15} />
-                  </button>
-                </div>
+        <>
+          {draftMatches.length > 0 && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-blue-400 uppercase tracking-wider">
+                  Pending Approval ({draftMatches.length})
+                </h2>
+                <button
+                  onClick={() => {
+                    if (confirm(`Approve all ${draftMatches.length} draft matches?`)) {
+                      approveAllMutation.mutate();
+                    }
+                  }}
+                  disabled={approveAllMutation.isPending}
+                  className="flex items-center gap-1 text-xs bg-green-900/30 hover:bg-green-800/50 text-green-400 px-3 py-1.5 rounded-lg transition-colors"
+                >
+                  <Check size={13} />
+                  {approveAllMutation.isPending ? "Approving..." : "Approve All"}
+                </button>
               </div>
+              {draftMatches.map((match) => (
+                <div key={match.id} className="card-sm border-blue-900/40 hover:border-blue-800/60 transition-colors">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-1">
+                        <span className="font-bold text-black">
+                          {match.team1} vs {match.team2}
+                        </span>
+                        <span className={statusColors.draft}>draft</span>
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {formatMatchDateTime(match.match_datetime)}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => approveMutation.mutate(match.id)}
+                        disabled={approveMutation.isPending}
+                        className="flex items-center gap-1 text-xs bg-green-900/30 hover:bg-green-800/50 text-green-400 px-2.5 py-1.5 rounded-lg transition-colors"
+                        title="Approve — makes match visible to players"
+                      >
+                        <Check size={13} />
+                        Approve
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (confirm(`Reject "${match.team1} vs ${match.team2}"? This will delete the draft.`)) {
+                            deleteMutation.mutate(match.id);
+                          }
+                        }}
+                        className="flex items-center gap-1 text-xs bg-red-900/20 hover:bg-red-900/40 text-red-400 px-2.5 py-1.5 rounded-lg transition-colors"
+                        title="Reject — deletes this draft"
+                      >
+                        <X size={13} />
+                        Reject
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          )}
+
+          {regularMatches.length === 0 && draftMatches.length === 0 ? (
+            <div className="card text-center py-12">
+              <p className="text-gray-500">No matches yet. Create one or import from API!</p>
+            </div>
+          ) : regularMatches.length > 0 ? (
+            <div className="space-y-3">
+              {draftMatches.length > 0 && (
+                <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
+                  Scheduled & Active
+                </h2>
+              )}
+              {regularMatches.map((match) => (
+                <div key={match.id} className="card-sm hover:border-gray-700 transition-colors">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-1">
+                        <span className="font-bold text-black">
+                          {match.team1} vs {match.team2}
+                        </span>
+                        <span className={statusColors[match.status]}>{match.status}</span>
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {formatMatchDateTime(match.match_datetime)}
+                        {match.status === "finished" && match.score_team1 !== null && (
+                          <span className="ml-3 text-white font-bold">
+                            {match.score_team1} – {match.score_team2}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {match.status !== "finished" && match.status !== "cancelled" && (
+                        <button
+                          onClick={() => setResultMatch(match)}
+                          className="flex items-center gap-1 text-xs bg-gold-600/20 hover:bg-gold-600/40 text-gold-400 px-2.5 py-1.5 rounded-lg transition-colors"
+                          title="Enter result"
+                        >
+                          <Trophy size={13} />
+                          Result
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setEditMatch(match)}
+                        className="text-gray-400 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-gray-700"
+                        title="Edit"
+                      >
+                        <Edit2 size={15} />
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (confirm("Delete this match? All predictions will be lost.")) {
+                            deleteMutation.mutate(match.id);
+                          }
+                        }}
+                        className="text-red-600 hover:text-red-400 transition-colors p-1.5 rounded-lg hover:bg-gray-700"
+                        title="Delete"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </>
       )}
 
       {showCreate && <MatchForm onClose={() => setShowCreate(false)} />}

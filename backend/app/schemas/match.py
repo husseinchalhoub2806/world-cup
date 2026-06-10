@@ -60,4 +60,16 @@ class MatchResponse(BaseModel):
     status: MatchStatus
     score_team1: Optional[int]
     score_team2: Optional[int]
+    external_id: Optional[str] = None
     created_at: datetime
+
+
+class MatchImportResponse(BaseModel):
+    imported: int
+    skipped: int
+
+
+class MatchScoreImportResponse(BaseModel):
+    updated: int   # matches scored for the first time
+    skipped: int   # already finished or no result available
+    not_found: int # result exists on TheSportsDB but match not in our DB

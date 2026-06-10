@@ -36,6 +36,20 @@ The admin user is created automatically on first startup using the `ADMIN_NICKNA
 
 ---
 
+## Match Import
+
+Matches can be imported automatically from [TheSportsDB](https://www.thesportsdb.com) (free — no key needed for the free tier):
+
+1. In the admin panel go to **Matches** → click **"Import from API"**
+2. Fixtures arrive as **drafts** — invisible to players until approved
+3. Approve individually or use **"Approve All"** to publish everything at once
+
+Re-importing is safe: already-imported matches are skipped via a unique `external_id` check.
+
+The free tier key (`3`) is set by default. For higher rate limits, add a [Patreon key](https://www.patreon.com/thesportsdb) to `.env`.
+
+---
+
 ## Project Structure
 
 ```
@@ -48,7 +62,7 @@ world-cup/
 │   │   ├── db/            # Session, base, init_db
 │   │   ├── models/        # SQLAlchemy models
 │   │   ├── schemas/       # Pydantic schemas
-│   │   └── services/      # Scoring + leaderboard logic
+│   │   └── services/      # Scoring, leaderboard, TheSportsDB import
 │   ├── alembic/           # Database migrations
 │   └── tests/
 ├── frontend/
@@ -109,6 +123,9 @@ npm test         # Run tests
 | `ADMIN_PASSWORD` | Admin password |
 | `ADMIN_REAL_NAME` | Admin display name |
 | `CORS_ORIGINS` | Comma-separated allowed origins |
+| `SPORTSDB_API_KEY` | TheSportsDB key — `3` for free tier, or Patreon key |
+| `SPORTSDB_LEAGUE_ID` | League to import (default: `4429` = FIFA World Cup) |
+| `SPORTSDB_SEASON` | Season to import (default: `2026`) |
 
 ---
 
@@ -130,13 +147,18 @@ GET    /api/v1/leaderboard/public   ← no auth, for landing page
 
 # Admin
 GET    /api/v1/admin/users
-PATCH  /api/v1/admin/users/{id}
+PATCH  /api/v1/admin/users/{id}           ← update status or role
 DELETE /api/v1/admin/users/{id}
+
 GET    /api/v1/admin/matches
-POST   /api/v1/admin/matches
+POST   /api/v1/admin/matches              ← create manually
 PATCH  /api/v1/admin/matches/{id}
 DELETE /api/v1/admin/matches/{id}
-POST   /api/v1/admin/matches/{id}/result   ← triggers auto-scoring
+POST   /api/v1/admin/matches/import       ← fetch from TheSportsDB → drafts
+POST   /api/v1/admin/matches/approve-all  ← bulk approve all drafts
+POST   /api/v1/admin/matches/{id}/approve ← approve single draft
+POST   /api/v1/admin/matches/{id}/result  ← triggers auto-scoring
+
 GET    /api/v1/admin/predictions
 GET    /api/v1/admin/leaderboard
 ```
