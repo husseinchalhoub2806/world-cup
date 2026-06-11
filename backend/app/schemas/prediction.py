@@ -54,3 +54,11 @@ class PredictionWithMatchResponse(PredictionResponse):
     match_status: str
     user_nickname: Optional[str] = None
     user_real_name: Optional[str] = None
+
+
+class MatchPredictionPublicResponse(BaseModel):
+    """Public view of a prediction — nickname and scores only, revealed after kickoff."""
+    nickname: str
+    predicted_score_team1: int
+    predicted_score_team2: int
+    predicted_winner: PredictedWinner

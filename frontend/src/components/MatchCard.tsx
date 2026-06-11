@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Clock, Lock } from "lucide-react";
 import type { Match, PredictionWithMatch } from "../types";
 import { formatMatchDate, formatMatchTime, isMatchLocked } from "../utils/dates";
+import MatchPredictionsModal from "./MatchPredictionsModal";
 
 interface Props {
   match: Match;
@@ -56,10 +58,12 @@ function PredictionBadge({ prediction, match }: { prediction?: PredictionWithMat
 }
 
 export default function MatchCard({ match, prediction, onPredict }: Props) {
+  const [showPredictions, setShowPredictions] = useState(false);
   const locked   = isMatchLocked(match.match_datetime);
   const canPredict = (!locked && match.status === "scheduled") || match.status === "live";
   const showResult = match.status === "finished" && match.score_team1 !== null;
   const isLive   = match.status === "live";
+  const canViewPredictions = locked && match.status !== "cancelled";
 
   return (
     <div
@@ -133,6 +137,22 @@ export default function MatchCard({ match, prediction, onPredict }: Props) {
           )}
         </div>
       </div>
+
+      {/* View Predictions button */}
+      {canViewPredictions && (
+        <div className="mt-3 pt-3 border-t border-gray-100">
+          <button
+            onClick={() => setShowPredictions(true)}
+            className="w-full text-xs font-semibold text-gray-500 hover:text-gray-700 py-1.5 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            View Predictions
+          </button>
+        </div>
+      )}
+
+      {showPredictions && (
+        <MatchPredictionsModal match={match} onClose={() => setShowPredictions(false)} />
+      )}
     </div>
   );
 }

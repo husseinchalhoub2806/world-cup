@@ -1,5 +1,5 @@
 import { apiClient } from "./client";
-import type { Prediction, PredictionWithMatch, PredictedWinner } from "../types";
+import type { MatchPredictionPublic, Prediction, PredictionWithMatch, PredictedWinner } from "../types";
 
 export interface PredictionInput {
   predicted_winner: PredictedWinner;
@@ -15,6 +15,11 @@ export const predictionsApi = {
 
   submit: async (matchId: number, data: PredictionInput): Promise<Prediction> => {
     const resp = await apiClient.post<Prediction>(`/predictions/${matchId}`, data);
+    return resp.data;
+  },
+
+  matchPredictions: async (matchId: number): Promise<MatchPredictionPublic[]> => {
+    const resp = await apiClient.get<MatchPredictionPublic[]>(`/predictions/match/${matchId}`);
     return resp.data;
   },
 };

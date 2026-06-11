@@ -44,6 +44,13 @@ export interface PredictionWithMatch extends Prediction {
   user_real_name: string;
 }
 
+export interface MatchPredictionPublic {
+  nickname: string;
+  predicted_score_team1: number;
+  predicted_score_team2: number;
+  predicted_winner: PredictedWinner;
+}
+
 export interface LeaderboardEntry {
   rank: number;
   user_id: number;
