@@ -19,7 +19,7 @@ export default function AdminPredictions() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-black text-white">All Predictions</h1>
+        <h1 className="text-2xl font-black text-black">All Predictions</h1>
         <span className="text-gray-500 text-sm">{predictions.length} total</span>
       </div>
 
@@ -64,11 +64,11 @@ export default function AdminPredictions() {
                       {preds.map((p) => (
                         <tr key={p.id} className="hover:bg-gray-800/20">
                           <td className="py-2 pr-4">
-                            <span className="font-medium text-gray-100">{p.user_real_name}</span>
+                            <span className="font-medium text-black">{p.user_real_name}</span>
                             <span className="text-gray-500 text-xs ml-1">({p.user_nickname})</span>
                           </td>
                           <td className="py-2 pr-4 text-center">
-                            <span className="text-gray-100 font-mono font-semibold">
+                            <span className="text-black font-mono font-semibold">
                               {p.predicted_score_team1} – {p.predicted_score_team2}
                             </span>
                             <span className="text-gray-400 text-xs ml-2">
