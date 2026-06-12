@@ -46,6 +46,7 @@ export default function LeaderboardTable({ entries, compact = false }: Props) {
                     <span className="font-bold" style={{ color: isMe ? "#f97316" : "#1e293b" }}>
                       {entry.nickname}
                     </span>
+                    <span className="text-sm text-gray-400">({entry.real_name})</span>
                     {isMe && (
                       <span className="text-xs px-1.5 py-0.5 rounded font-bold" style={{ background: "rgba(249,115,22,0.12)", color: "#f97316", border: "1px solid rgba(249,115,22,0.3)" }}>
                         you
