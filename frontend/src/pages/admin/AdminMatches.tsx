@@ -260,29 +260,33 @@ export default function AdminMatches() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between gap-3 flex-wrap">
         <h1 className="text-2xl font-black text-white">Matches</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => importResultsMutation.mutate()}
             disabled={importResultsMutation.isPending}
-            className="btn-secondary flex items-center gap-2 text-sm"
+            className="btn-secondary flex items-center gap-1.5 text-sm"
             title="Fetch finished match scores from TheSportsDB and auto-score predictions"
           >
-            <RefreshCw size={16} />
-            {importResultsMutation.isPending ? "Importing..." : "Import Scores"}
+            <RefreshCw size={15} />
+            <span className="hidden sm:inline">{importResultsMutation.isPending ? "Importing..." : "Import Scores"}</span>
+            <span className="sm:hidden">{importResultsMutation.isPending ? "..." : "Scores"}</span>
           </button>
           <button
             onClick={() => importMutation.mutate()}
             disabled={importMutation.isPending}
-            className="btn-secondary flex items-center gap-2 text-sm"
+            className="btn-secondary flex items-center gap-1.5 text-sm"
             title="Fetch World Cup fixtures from TheSportsDB"
           >
-            <Download size={16} />
-            {importMutation.isPending ? "Importing..." : "Import Fixtures"}
+            <Download size={15} />
+            <span className="hidden sm:inline">{importMutation.isPending ? "Importing..." : "Import Fixtures"}</span>
+            <span className="sm:hidden">{importMutation.isPending ? "..." : "Fixtures"}</span>
           </button>
-          <button onClick={() => setShowCreate(true)} className="btn-gold flex items-center gap-2 text-sm">
-            <Plus size={16} /> Create Match
+          <button onClick={() => setShowCreate(true)} className="btn-gold flex items-center gap-1.5 text-sm">
+            <Plus size={15} />
+            <span className="hidden sm:inline">Create Match</span>
+            <span className="sm:hidden">Create</span>
           </button>
         </div>
       </div>
@@ -312,10 +316,10 @@ export default function AdminMatches() {
               </div>
               {draftMatches.map((match) => (
                 <div key={match.id} className="card-sm border-blue-900/40 hover:border-blue-800/60 transition-colors">
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-1">
-                        <span className="font-bold text-black">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <span className="font-bold text-black truncate">
                           {match.team1} vs {match.team2}
                         </span>
                         <span className={statusColors.draft}>draft</span>
@@ -324,7 +328,7 @@ export default function AdminMatches() {
                         {formatMatchDateTime(match.match_datetime)}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 shrink-0">
                       <button
                         onClick={() => approveMutation.mutate(match.id)}
                         disabled={approveMutation.isPending}
@@ -332,7 +336,7 @@ export default function AdminMatches() {
                         title="Approve — makes match visible to players"
                       >
                         <Check size={13} />
-                        Approve
+                        <span className="hidden xs:inline">Approve</span>
                       </button>
                       <button
                         onClick={() => {
@@ -344,7 +348,7 @@ export default function AdminMatches() {
                         title="Reject — deletes this draft"
                       >
                         <X size={13} />
-                        Reject
+                        <span className="hidden xs:inline">Reject</span>
                       </button>
                     </div>
                   </div>
@@ -366,9 +370,9 @@ export default function AdminMatches() {
               )}
               {regularMatches.map((match) => (
                 <div key={match.id} className="card-sm hover:border-gray-700 transition-colors">
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-1">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
                         <span className="font-bold text-black">
                           {match.team1} vs {match.team2}
                         </span>
@@ -383,7 +387,7 @@ export default function AdminMatches() {
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 shrink-0">
                       {match.status !== "finished" && match.status !== "cancelled" && (
                         <button
                           onClick={() => setResultMatch(match)}
@@ -391,7 +395,7 @@ export default function AdminMatches() {
                           title="Enter result"
                         >
                           <Trophy size={13} />
-                          Result
+                          <span className="hidden sm:inline">Result</span>
                         </button>
                       )}
                       <button

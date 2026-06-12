@@ -61,19 +61,19 @@ function UserRow({ user }: { user: User }) {
 
   return (
     <tr className="border-b border-gray-800 hover:bg-gray-800/30 transition-colors">
-      <td className="py-3 pr-4">
-        <div className="font-semibold text-black">{user.nickname}</div>
+      <td className="py-3 pr-3">
+        <div className="font-semibold text-black text-sm">{user.nickname}</div>
         <div className="text-xs text-gray-500">{user.real_name}</div>
       </td>
-      <td className="py-3 pr-4">
+      <td className="py-3 pr-3">
         <span className={statusBadge[user.status]}>{user.status}</span>
       </td>
-      <td className="py-3 pr-4 text-sm">
+      <td className="py-3 pr-3 text-sm hidden sm:table-cell">
         {user.role === "admin"
           ? <span className="text-amber-400 font-medium">Admin{isSelf && " (you)"}</span>
           : <span className="text-gray-400">Player</span>}
       </td>
-      <td className="py-3 pr-4 text-gray-500 text-xs">
+      <td className="py-3 pr-3 text-gray-500 text-xs hidden md:table-cell">
         {format(parseISO(user.created_at + (user.created_at.endsWith("Z") ? "" : "Z")), "d MMM yyyy")}
       </td>
       <td className="py-3">
@@ -183,10 +183,10 @@ export default function AdminUsers() {
             <table className="w-full">
               <thead>
                 <tr className="text-left text-xs text-gray-500 uppercase tracking-wider border-b border-gray-800">
-                  <th className="pb-3 pr-4">User</th>
-                  <th className="pb-3 pr-4">Status</th>
-                  <th className="pb-3 pr-4">Role</th>
-                  <th className="pb-3 pr-4">Joined</th>
+                  <th className="pb-3 pr-3">User</th>
+                  <th className="pb-3 pr-3">Status</th>
+                  <th className="pb-3 pr-3 hidden sm:table-cell">Role</th>
+                  <th className="pb-3 pr-3 hidden md:table-cell">Joined</th>
                   <th className="pb-3">Actions</th>
                 </tr>
               </thead>

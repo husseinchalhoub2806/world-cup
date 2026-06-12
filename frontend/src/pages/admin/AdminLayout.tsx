@@ -24,9 +24,28 @@ export default function AdminLayout() {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-6">
+        {/* Mobile nav — above content */}
+        <div className="md:hidden flex gap-1 mb-4 bg-gray-900/60 rounded-xl p-1">
+          {ADMIN_NAV.map(({ to, label, icon: Icon, exact }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={exact}
+              className={({ isActive }) =>
+                `flex-1 flex flex-col items-center gap-1 px-2 py-2 rounded-lg text-xs font-medium transition-colors ${
+                  isActive ? "bg-amber-900/30 text-amber-400" : "text-gray-400 hover:text-white hover:bg-gray-800"
+                }`
+              }
+            >
+              <Icon size={16} />
+              {label}
+            </NavLink>
+          ))}
+        </div>
+
         <div className="flex gap-6">
-          {/* Sidebar */}
+          {/* Sidebar — desktop only */}
           <aside className="w-48 shrink-0 hidden md:block">
             <nav className="space-y-1">
               {ADMIN_NAV.map(({ to, label, icon: Icon, exact }) => (
@@ -48,25 +67,6 @@ export default function AdminLayout() {
               ))}
             </nav>
           </aside>
-
-          {/* Mobile nav */}
-          <div className="md:hidden flex gap-2 mb-4 w-full">
-            {ADMIN_NAV.map(({ to, label, icon: Icon, exact }) => (
-              <NavLink
-                key={to}
-                to={to}
-                end={exact}
-                className={({ isActive }) =>
-                  `flex-1 flex flex-col items-center gap-1 px-2 py-2 rounded-lg text-xs font-medium transition-colors ${
-                    isActive ? "bg-amber-900/30 text-amber-400" : "text-gray-400 hover:text-white hover:bg-gray-800"
-                  }`
-                }
-              >
-                <Icon size={16} />
-                {label}
-              </NavLink>
-            ))}
-          </div>
 
           {/* Content */}
           <main className="flex-1 min-w-0">

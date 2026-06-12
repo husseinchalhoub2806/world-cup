@@ -35,14 +35,14 @@ export default function AdminPredictions() {
             const first = preds[0];
             return (
               <div key={key} className="card">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h3 className="font-bold text-black">
+                <div className="flex items-start justify-between gap-3 mb-4">
+                  <div className="min-w-0">
+                    <h3 className="font-bold text-black text-sm sm:text-base">
                       {first.match_team1} vs {first.match_team2}
                     </h3>
                     <p className="text-xs text-gray-400">{formatMatchDateTime(first.match_datetime)}</p>
                   </div>
-                  <span className={`text-xs px-2.5 py-0.5 rounded-full ${
+                  <span className={`text-xs px-2.5 py-0.5 rounded-full shrink-0 ${
                     first.match_status === "finished"
                       ? "bg-gray-800 text-gray-400"
                       : "badge-scheduled"
@@ -64,14 +64,14 @@ export default function AdminPredictions() {
                       {preds.map((p) => (
                         <tr key={p.id} className="hover:bg-gray-800/20">
                           <td className="py-2 pr-4">
-                            <span className="font-medium text-black">{p.user_real_name}</span>
-                            <span className="text-gray-500 text-xs ml-1">({p.user_nickname})</span>
+                            <div className="font-medium text-black text-sm">{p.user_real_name}</div>
+                            <div className="text-gray-500 text-xs hidden sm:block">{p.user_nickname}</div>
                           </td>
                           <td className="py-2 pr-4 text-center">
                             <span className="text-black font-mono font-semibold">
                               {p.predicted_score_team1} – {p.predicted_score_team2}
                             </span>
-                            <span className="text-gray-400 text-xs ml-2">
+                            <span className="text-gray-400 text-xs ml-2 hidden sm:inline">
                               ({p.predicted_winner === "team1"
                                 ? first.match_team1
                                 : p.predicted_winner === "team2"
