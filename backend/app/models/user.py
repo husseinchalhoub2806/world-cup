@@ -1,7 +1,7 @@
 import enum
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, Enum, Index, String
+from sqlalchemy import DateTime, Enum, Index, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
@@ -31,6 +31,7 @@ class User(Base):
     status: Mapped[UserStatus] = mapped_column(
         Enum(UserStatus), default=UserStatus.pending, nullable=False, index=True
     )
+    joker_balance: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
     )

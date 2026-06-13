@@ -44,10 +44,14 @@ function PredictionBadge({ prediction, match }: { prediction?: PredictionWithMat
         {prediction.predicted_score_team1} – {prediction.predicted_score_team2}
         <span className="text-gray-400 ml-1 font-normal">({winnerLabel})</span>
       </div>
+      {prediction.joker_applied && (
+        <div className="text-xs font-bold mt-0.5" style={{ color: "#9333ea" }}>🃏 Joker</div>
+      )}
       {prediction.points_earned !== null && (
         <div className={`font-black mt-0.5 ${
-          prediction.points_earned === 3 ? "text-yellow-500"
-          : prediction.points_earned === 1 ? "text-green-500"
+          prediction.points_earned >= 6 ? "text-purple-500"
+          : prediction.points_earned === 3 ? "text-yellow-500"
+          : prediction.points_earned > 0 ? "text-green-500"
           : "text-gray-400"
         }`}>
           {prediction.points_earned > 0 ? `+${prediction.points_earned} pts` : "0 pts"}

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle, Shield, ShieldOff, Trash2, XCircle } from "lucide-react";
+import { useState } from "react";
 import toast from "react-hot-toast";
 import { adminApi } from "../../api/admin";
 import { getErrorMessage } from "../../api/client";
@@ -72,6 +73,13 @@ function UserRow({ user }: { user: User }) {
         {user.role === "admin"
           ? <span className="text-amber-400 font-medium">Admin{isSelf && " (you)"}</span>
           : <span className="text-gray-400">Player</span>}
+      </td>
+      <td className="py-3 pr-3 hidden md:table-cell">
+        {user.joker_balance > 0 ? (
+          <span className="text-sm font-bold" style={{ color: "#c084fc" }}>🃏 {user.joker_balance}</span>
+        ) : (
+          <span className="text-xs text-gray-600">—</span>
+        )}
       </td>
       <td className="py-3 pr-3 text-gray-500 text-xs hidden md:table-cell">
         {format(parseISO(user.created_at + (user.created_at.endsWith("Z") ? "" : "Z")), "d MMM yyyy")}
@@ -155,6 +163,52 @@ function UserRow({ user }: { user: User }) {
   );
 }
 
+function GrantJokersButton() {
+  const queryClient = useQueryClient();
+  const [count, setCount] = useState(1);
+
+  const mutation = useMutation({
+    mutationFn: () => adminApi.grantJokers(count),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      toast.success(`Granted ${data.jokers_per_player} joker(s) to ${data.granted_to} player(s)`);
+    },
+    onError: (err) => toast.error(getErrorMessage(err)),
+  });
+
+  return (
+    <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1 rounded-lg border border-gray-700 overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setCount(Math.max(1, count - 1))}
+          className="px-2 py-1 text-gray-400 hover:text-white hover:bg-gray-700 transition-colors text-sm font-bold"
+        >
+          −
+        </button>
+        <span className="px-2 py-1 text-sm font-bold text-white min-w-[24px] text-center">{count}</span>
+        <button
+          type="button"
+          onClick={() => setCount(Math.min(10, count + 1))}
+          className="px-2 py-1 text-gray-400 hover:text-white hover:bg-gray-700 transition-colors text-sm font-bold"
+        >
+          +
+        </button>
+      </div>
+      <button
+        onClick={() => {
+          if (confirm(`Grant ${count} joker(s) to all approved players?`)) mutation.mutate();
+        }}
+        disabled={mutation.isPending}
+        className="text-sm font-bold px-3 py-1.5 rounded-lg transition-colors"
+        style={{ background: "rgba(168,85,247,0.15)", color: "#c084fc", border: "1px solid rgba(168,85,247,0.3)" }}
+      >
+        🃏 Grant Joker{count > 1 ? "s" : ""} to All
+      </button>
+    </div>
+  );
+}
+
 export default function AdminUsers() {
   const { data: users = [], isLoading } = useQuery({
     queryKey: ["admin-users"],
@@ -166,7 +220,10 @@ export default function AdminUsers() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-black text-white">Users</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-black text-white">Users</h1>
+        <GrantJokersButton />
+      </div>
 
       {isLoading ? (
         <p className="text-gray-500">Loading...</p>
@@ -186,6 +243,7 @@ export default function AdminUsers() {
                   <th className="pb-3 pr-3">User</th>
                   <th className="pb-3 pr-3">Status</th>
                   <th className="pb-3 pr-3 hidden sm:table-cell">Role</th>
+                  <th className="pb-3 pr-3 hidden md:table-cell">Jokers</th>
                   <th className="pb-3 pr-3 hidden md:table-cell">Joined</th>
                   <th className="pb-3">Actions</th>
                 </tr>

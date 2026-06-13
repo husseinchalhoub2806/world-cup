@@ -62,6 +62,8 @@ def score_match(db: Session, match: Match) -> int:
         points = calculate_prediction_points(
             prediction, match.score_team1, match.score_team2
         )
+        if prediction.joker_applied:
+            points *= 2
         prediction.points_earned = points
         logger.debug(
             "Match {} | User {} | Predicted {}-{} ({}) | Actual {}-{} | Points: {}",

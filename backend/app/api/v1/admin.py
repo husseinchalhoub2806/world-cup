@@ -20,6 +20,7 @@ from app.crud.crud_user import (
     delete_user,
     get_all_users,
     get_user_by_id,
+    grant_jokers_to_all,
     update_user_role,
     update_user_status,
 )
@@ -27,7 +28,7 @@ from app.models.user import User, UserRole, UserStatus
 from app.schemas.leaderboard import LeaderboardResponse
 from app.schemas.match import MatchCreate, MatchImportResponse, MatchResponse, MatchResultInput, MatchScoreImportResponse, MatchUpdate
 from app.schemas.prediction import PredictionResponse, PredictionWithMatchResponse
-from app.schemas.user import AdminUserUpdate, UserResponse
+from app.schemas.user import AdminUserUpdate, JokerGrantInput, UserResponse
 from app.services.leaderboard_service import get_leaderboard
 from app.services.scoring_service import score_match
 
@@ -305,6 +306,7 @@ def list_all_predictions(
                 predicted_winner=p.predicted_winner,
                 predicted_score_team1=p.predicted_score_team1,
                 predicted_score_team2=p.predicted_score_team2,
+                joker_applied=p.joker_applied,
                 points_earned=p.points_earned,
                 created_at=p.created_at,
                 match_team1=p.match.team1,
@@ -328,6 +330,22 @@ def list_match_predictions(
     if not match:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Match not found")
     return get_match_predictions(db, match_id)
+
+
+# ── Jokers ────────────────────────────────────────────────────────────────────
+
+@router.post("/jokers/grant", response_model=dict)
+def grant_jokers(
+    data: JokerGrantInput,
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_current_admin),
+):
+    """Grant jokers to all approved players. Each player's balance is incremented by data.count."""
+    if data.count < 1:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Count must be at least 1")
+    updated = grant_jokers_to_all(db, data.count)
+    logger.info("Admin {} granted {} joker(s) to {} players", admin.nickname, data.count, updated)
+    return {"granted_to": updated, "jokers_per_player": data.count}
 
 
 # ── Analytics ─────────────────────────────────────────────────────────────────

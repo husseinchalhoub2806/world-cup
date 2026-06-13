@@ -3,6 +3,7 @@ from typing import Optional
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.prediction import Prediction
+from app.models.user import User
 from app.schemas.prediction import PredictionCreate
 
 
@@ -49,21 +50,32 @@ def get_all_predictions(db: Session, skip: int = 0, limit: int = 500) -> list[Pr
     )
 
 
-def upsert_prediction(db: Session, user_id: int, match_id: int, data: PredictionCreate) -> Prediction:
-    """Create or update a prediction. Only allowed before match kickoff (enforced at API layer)."""
-    prediction = get_prediction(db, user_id, match_id)
+def upsert_prediction(db: Session, user: User, match_id: int, data: PredictionCreate) -> Prediction:
+    """Create or update a prediction. Only allowed before match kickoff (enforced at API layer).
+    Handles joker balance: decrement on apply, refund on removal. Balance validation is the caller's responsibility."""
+    prediction = get_prediction(db, user.id, match_id)
+    was_joker = prediction.joker_applied if prediction else False
+    new_joker = data.joker_applied
+
+    if new_joker and not was_joker:
+        user.joker_balance -= 1
+    elif not new_joker and was_joker:
+        user.joker_balance += 1
+
     if prediction:
         prediction.predicted_winner = data.predicted_winner
         prediction.predicted_score_team1 = data.predicted_score_team1
         prediction.predicted_score_team2 = data.predicted_score_team2
-        prediction.points_earned = None  # Reset if match not yet finished
+        prediction.joker_applied = new_joker
+        prediction.points_earned = None
     else:
         prediction = Prediction(
-            user_id=user_id,
+            user_id=user.id,
             match_id=match_id,
             predicted_winner=data.predicted_winner,
             predicted_score_team1=data.predicted_score_team1,
             predicted_score_team2=data.predicted_score_team2,
+            joker_applied=new_joker,
         )
         db.add(prediction)
 

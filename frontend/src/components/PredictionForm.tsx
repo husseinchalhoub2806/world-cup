@@ -1,9 +1,10 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { X } from "lucide-react";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import type { Match, PredictedWinner, PredictionWithMatch } from "../types";
 import { predictionsApi } from "../api/predictions";
+import { authApi } from "../api/auth";
 import { getErrorMessage } from "../api/client";
 
 interface Props {
@@ -16,9 +17,20 @@ export default function PredictionForm({ match, existing, onClose }: Props) {
   const queryClient = useQueryClient();
   const [score1, setScore1] = useState(existing?.predicted_score_team1 ?? 0);
   const [score2, setScore2] = useState(existing?.predicted_score_team2 ?? 0);
+  const [useJoker, setUseJoker] = useState(existing?.joker_applied ?? false);
+
+  const { data: currentUser } = useQuery({
+    queryKey: ["me"],
+    queryFn: authApi.me,
+    staleTime: 30_000,
+  });
 
   const derivedWinner: PredictedWinner =
     score1 > score2 ? "team1" : score2 > score1 ? "team2" : "tie";
+
+  // Joker already applied to this prediction counts as "used", not "available"
+  const availableJokers = (currentUser?.joker_balance ?? 0);
+  const canToggleJoker = availableJokers > 0 || (existing?.joker_applied ?? false);
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -26,10 +38,12 @@ export default function PredictionForm({ match, existing, onClose }: Props) {
         predicted_winner: derivedWinner,
         predicted_score_team1: score1,
         predicted_score_team2: score2,
+        joker_applied: useJoker,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["predictions"] });
       queryClient.invalidateQueries({ queryKey: ["matches"] });
+      queryClient.invalidateQueries({ queryKey: ["me"] });
       toast.success("Prediction saved!");
       onClose();
     },
@@ -117,16 +131,59 @@ export default function PredictionForm({ match, existing, onClose }: Props) {
         </div>
 
         {/* Points reminder */}
-        <div className="flex gap-3 mb-6">
+        <div className="flex gap-3 mb-5">
           <div className="flex-1 rounded-xl p-3 text-center" style={{ background: "rgba(59,130,246,0.08)", border: "1px solid rgba(59,130,246,0.2)" }}>
             <p className="text-xs text-gray-500">Correct winner</p>
-            <p className="font-black text-blue-600 text-lg">1 pt</p>
+            <p className="font-black text-blue-600 text-lg">{useJoker ? "2 pts" : "1 pt"}</p>
           </div>
           <div className="flex-1 rounded-xl p-3 text-center" style={{ background: "rgba(234,179,8,0.1)", border: "1px solid rgba(234,179,8,0.3)" }}>
             <p className="text-xs text-gray-500">Exact score</p>
-            <p className="font-black text-yellow-500 text-lg">3 pts</p>
+            <p className="font-black text-yellow-500 text-lg">{useJoker ? "6 pts" : "3 pts"}</p>
           </div>
         </div>
+
+        {/* Joker toggle */}
+        {(canToggleJoker || useJoker) && (
+          <div
+            className="rounded-xl p-4 mb-5"
+            style={{
+              background: useJoker ? "rgba(168,85,247,0.1)" : "rgba(107,114,128,0.06)",
+              border: useJoker ? "1px solid rgba(168,85,247,0.4)" : "1px solid rgba(107,114,128,0.2)",
+            }}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-bold text-gray-800">
+                  🃏 Use Joker
+                  {availableJokers > 0 && (
+                    <span className="ml-2 text-xs font-semibold px-1.5 py-0.5 rounded-full"
+                      style={{ background: "rgba(168,85,247,0.15)", color: "#9333ea" }}>
+                      {availableJokers} available
+                    </span>
+                  )}
+                </p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {useJoker ? "Points will be doubled for this prediction" : "Double your points for this match"}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!useJoker && availableJokers <= 0) return;
+                  setUseJoker(!useJoker);
+                }}
+                disabled={!useJoker && availableJokers <= 0}
+                className="relative inline-flex h-6 w-11 shrink-0 rounded-full transition-colors duration-200 focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ background: useJoker ? "#9333ea" : "#d1d5db" }}
+              >
+                <span
+                  className="inline-block h-5 w-5 rounded-full bg-white shadow transition-transform duration-200 mt-0.5"
+                  style={{ transform: useJoker ? "translateX(22px)" : "translateX(2px)" }}
+                />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Actions */}
         <div className="flex gap-3">

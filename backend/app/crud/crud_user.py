@@ -54,3 +54,14 @@ def update_user_role(db: Session, user: User, role: UserRole) -> User:
 def delete_user(db: Session, user: User) -> None:
     db.delete(user)
     db.commit()
+
+
+def grant_jokers_to_all(db: Session, count: int = 1) -> int:
+    """Increment joker_balance by count for all approved users. Returns the number of users updated."""
+    updated = (
+        db.query(User)
+        .filter(User.status == UserStatus.approved)
+        .update({User.joker_balance: User.joker_balance + count}, synchronize_session=False)
+    )
+    db.commit()
+    return updated

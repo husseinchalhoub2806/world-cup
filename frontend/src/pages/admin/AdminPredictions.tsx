@@ -120,6 +120,9 @@ export default function AdminPredictions() {
                                 ? first.match_team2
                                 : "Tie"})
                             </span>
+                            {p.joker_applied && (
+                              <span className="ml-2 text-xs font-bold" style={{ color: "#c084fc" }}>🃏</span>
+                            )}
                           </td>
                           <td className="py-2 text-right">
                             {p.points_earned !== null ? (

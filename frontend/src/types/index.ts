@@ -9,6 +9,7 @@ export interface User {
   real_name: string;
   role: UserRole;
   status: UserStatus;
+  joker_balance: number;
   created_at: string;
 }
 
@@ -31,6 +32,7 @@ export interface Prediction {
   predicted_winner: PredictedWinner;
   predicted_score_team1: number;
   predicted_score_team2: number;
+  joker_applied: boolean;
   points_earned: number | null;
   created_at: string;
 }

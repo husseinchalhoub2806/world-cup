@@ -2,7 +2,7 @@ import enum
 from datetime import datetime, timezone
 from typing import Optional
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Index, Integer, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Index, Integer, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
@@ -25,7 +25,9 @@ class Prediction(Base):
     predicted_score_team1: Mapped[int] = mapped_column(Integer, nullable=False)
     predicted_score_team2: Mapped[int] = mapped_column(Integer, nullable=False)
 
-    # NULL = match not yet scored; 0/1/3 = scored result
+    joker_applied: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
+
+    # NULL = match not yet scored; 0/1/3 = scored result (doubled if joker applied)
     points_earned: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(

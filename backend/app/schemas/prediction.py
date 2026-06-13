@@ -10,6 +10,7 @@ class PredictionCreate(BaseModel):
     predicted_winner: PredictedWinner
     predicted_score_team1: int
     predicted_score_team2: int
+    joker_applied: bool = False
 
     @field_validator("predicted_score_team1", "predicted_score_team2")
     @classmethod
@@ -42,6 +43,7 @@ class PredictionResponse(BaseModel):
     predicted_winner: PredictedWinner
     predicted_score_team1: int
     predicted_score_team2: int
+    joker_applied: bool
     points_earned: Optional[int]
     created_at: datetime
 

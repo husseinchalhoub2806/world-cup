@@ -48,6 +48,7 @@ class UserResponse(BaseModel):
     real_name: str
     role: UserRole
     status: UserStatus
+    joker_balance: int
     created_at: datetime
 
 
@@ -70,3 +71,7 @@ class TokenResponse(BaseModel):
 class AdminUserUpdate(BaseModel):
     status: Optional[UserStatus] = None
     role: Optional[UserRole] = None
+
+
+class JokerGrantInput(BaseModel):
+    count: int = 1

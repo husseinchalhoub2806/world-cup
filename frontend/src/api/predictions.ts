@@ -5,6 +5,7 @@ export interface PredictionInput {
   predicted_winner: PredictedWinner;
   predicted_score_team1: number;
   predicted_score_team2: number;
+  joker_applied: boolean;
 }
 
 export const predictionsApi = {

@@ -96,4 +96,10 @@ export const adminApi = {
     const resp = await apiClient.get<LeaderboardResponse>("/admin/leaderboard");
     return resp.data;
   },
+
+  // Jokers
+  grantJokers: async (count: number = 1): Promise<{ granted_to: number; jokers_per_player: number }> => {
+    const resp = await apiClient.post<{ granted_to: number; jokers_per_player: number }>("/admin/jokers/grant", { count });
+    return resp.data;
+  },
 };

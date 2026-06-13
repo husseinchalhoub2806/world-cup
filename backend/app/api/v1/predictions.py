@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_approved_user, get_db
 from app.crud.crud_match import get_match_by_id
-from app.crud.crud_prediction import get_match_predictions, get_user_predictions, upsert_prediction
+from app.crud.crud_prediction import get_match_predictions, get_prediction, get_user_predictions, upsert_prediction
 from app.models.match import MatchStatus
 from app.models.user import User
 from app.schemas.prediction import MatchPredictionPublicResponse, PredictionCreate, PredictionResponse, PredictionWithMatchResponse
@@ -31,6 +31,7 @@ def get_my_predictions(
                 predicted_winner=p.predicted_winner,
                 predicted_score_team1=p.predicted_score_team1,
                 predicted_score_team2=p.predicted_score_team2,
+                joker_applied=p.joker_applied,
                 points_earned=p.points_earned,
                 created_at=p.created_at,
                 match_team1=p.match.team1,
@@ -97,7 +98,16 @@ def submit_prediction(
             detail="Prediction window has closed — match has already started",
         )
 
-    prediction = upsert_prediction(db, current_user.id, match_id, data)
+    existing = get_prediction(db, current_user.id, match_id)
+    was_joker = existing.joker_applied if existing else False
+
+    if data.joker_applied and not was_joker and current_user.joker_balance <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You have no jokers available",
+        )
+
+    prediction = upsert_prediction(db, current_user, match_id, data)
     logger.info(
         "User '{}' submitted prediction for match {} ({} vs {}): {} {}-{}",
         current_user.nickname,
