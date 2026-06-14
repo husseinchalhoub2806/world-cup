@@ -50,6 +50,14 @@ def get_all_predictions(db: Session, skip: int = 0, limit: int = 500) -> list[Pr
     )
 
 
+def reset_match_prediction_scores(db: Session, match_id: int) -> None:
+    """Null out points for all predictions on a match — used when a match reverts from finished to live."""
+    db.query(Prediction).filter(Prediction.match_id == match_id).update(
+        {Prediction.points_earned: None}, synchronize_session=False
+    )
+    db.commit()
+
+
 def upsert_prediction(db: Session, user: User, match_id: int, data: PredictionCreate) -> Prediction:
     """Create or update a prediction. Only allowed before match kickoff (enforced at API layer).
     Handles joker balance: decrement on apply, refund on removal. Balance validation is the caller's responsibility."""

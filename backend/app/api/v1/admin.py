@@ -12,10 +12,11 @@ from app.crud.crud_match import (
     get_all_matches,
     get_match_by_external_id,
     get_match_by_id,
+    set_match_live_score,
     set_match_result,
     update_match,
 )
-from app.crud.crud_prediction import get_all_predictions, get_match_predictions
+from app.crud.crud_prediction import get_all_predictions, get_match_predictions, reset_match_prediction_scores
 from app.crud.crud_user import (
     delete_user,
     get_all_users,
@@ -181,7 +182,8 @@ def import_results_from_api(
     db: Session = Depends(get_db),
     admin: User = Depends(get_current_admin),
 ):
-    """Fetch finished fixtures from TheSportsDB and auto-score any unscored matches."""
+    """Fetch scores from TheSportsDB. Live scores update the match to 'live'; final scores
+    mark it 'finished' and trigger prediction scoring. Re-importing is safe at any point."""
     from app.models.match import MatchStatus as MS
     from app.services.sportsdb_service import SportsDbError, fetch_world_cup_fixtures
 
@@ -193,26 +195,46 @@ def import_results_from_api(
     updated = skipped = not_found = 0
 
     for fixture in fixtures:
-        if fixture["score_team1"] is None or fixture["score_team2"] is None:
-            continue  # match not played yet
+        score1, score2 = fixture["score_team1"], fixture["score_team2"]
+        if score1 is None or score2 is None:
+            continue  # match not started yet
 
         match = get_match_by_external_id(db, fixture["external_id"])
         if not match:
             not_found += 1
             continue
 
-        if match.status == MS.finished:
+        is_final = fixture["is_final"]
+        same_score = match.score_team1 == score1 and match.score_team2 == score2
+
+        # Skip only when already finished with the confirmed final score
+        if match.status == MS.finished and same_score and is_final:
             skipped += 1
             continue
 
-        match = set_match_result(db, match, fixture["score_team1"], fixture["score_team2"])
-        scored_count = score_match(db, match)
+        if is_final:
+            match = set_match_result(db, match, score1, score2)
+            scored_count = score_match(db, match)
+            logger.info(
+                "Admin {} finalised match {} ({} vs {}): {}-{}. Scored {} predictions.",
+                admin.nickname, match.id, match.team1, match.team2, score1, score2, scored_count,
+            )
+        else:
+            was_finished = match.status == MS.finished
+            match = set_match_live_score(db, match, score1, score2)
+            if was_finished:
+                # Match was prematurely finished — revert prediction points until the real final arrives
+                reset_match_prediction_scores(db, match.id)
+                logger.warning(
+                    "Match {} ({} vs {}) reverted from finished→live; prediction scores reset.",
+                    match.id, match.team1, match.team2,
+                )
+            logger.info(
+                "Admin {} updated live score for match {} ({} vs {}): {}-{}.",
+                admin.nickname, match.id, match.team1, match.team2, score1, score2,
+            )
+
         updated += 1
-        logger.info(
-            "Admin {} imported result for match {} ({} vs {}): {}-{}. Scored {} predictions.",
-            admin.nickname, match.id, match.team1, match.team2,
-            fixture["score_team1"], fixture["score_team2"], scored_count,
-        )
 
     logger.info(
         "Admin {} bulk-imported results: {} updated, {} skipped, {} not found",

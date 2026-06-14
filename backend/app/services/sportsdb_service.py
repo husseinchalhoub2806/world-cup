@@ -73,12 +73,25 @@ def fetch_world_cup_fixtures() -> list[dict]:
                 "match_datetime": match_dt,
                 "score_team1": _parse_score(event.get("intHomeScore")),
                 "score_team2": _parse_score(event.get("intAwayScore")),
+                "is_final": _is_final_status(event.get("strStatus", "")),
             }
         )
 
-    logger.info("Parsed {} valid fixtures ({} with scores)", len(results),
-                sum(1 for r in results if r["score_team1"] is not None))
+    logger.info(
+        "Parsed {} valid fixtures ({} with scores, {} final)",
+        len(results),
+        sum(1 for r in results if r["score_team1"] is not None),
+        sum(1 for r in results if r["is_final"]),
+    )
     return results
+
+
+# TheSportsDB status values that indicate the match result is final
+_FINAL_STATUSES = {"Match Finished", "FT", "AET", "PEN", "AP"}
+
+
+def _is_final_status(status: str) -> bool:
+    return status.strip() in _FINAL_STATUSES
 
 
 def _parse_score(value) -> Optional[int]:
