@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { predictionsApi } from "../api/predictions";
 import type { Match, MatchPredictionPublic } from "../types";
@@ -21,7 +22,7 @@ export default function MatchPredictionsModal({ match, onClose }: Props) {
       .finally(() => setLoading(false));
   }, [match.id]);
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: "rgba(0,0,0,0.5)" }}
@@ -82,6 +83,7 @@ export default function MatchPredictionsModal({ match, onClose }: Props) {
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

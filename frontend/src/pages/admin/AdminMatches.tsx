@@ -380,22 +380,22 @@ export default function AdminMatches() {
                       </div>
                       <div className="text-xs text-gray-500">
                         {formatMatchDateTime(match.match_datetime)}
-                        {match.status === "finished" && match.score_team1 !== null && (
-                          <span className="ml-3 text-white font-bold">
+                        {match.score_team1 !== null && match.score_team2 !== null && (
+                          <span className="ml-3 text-gray-900 font-bold">
                             {match.score_team1} – {match.score_team2}
                           </span>
                         )}
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
-                      {match.status !== "finished" && match.status !== "cancelled" && (
+                      {match.status !== "cancelled" && match.status !== "draft" && (
                         <button
                           onClick={() => setResultMatch(match)}
                           className="flex items-center gap-1 text-xs bg-gold-600/20 hover:bg-gold-600/40 text-gold-400 px-2.5 py-1.5 rounded-lg transition-colors"
-                          title="Enter result"
+                          title={match.status === "finished" ? "Override result" : "Enter result"}
                         >
                           <Trophy size={13} />
-                          <span className="hidden sm:inline">Result</span>
+                          <span className="hidden sm:inline">{match.status === "finished" ? "Override" : "Result"}</span>
                         </button>
                       )}
                       <button
