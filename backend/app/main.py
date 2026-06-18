@@ -1,4 +1,6 @@
+import asyncio
 import time
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,8 +11,24 @@ import app.db.base  # noqa: F401 — registers all models with SQLAlchemy mapper
 from app.api.v1.router import api_router
 from app.core.config import settings
 from app.core.logging_config import setup_logging
+from app.services.score_sync_service import run_score_sync_loop
 
 setup_logging()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    task = asyncio.create_task(run_score_sync_loop())
+    try:
+        yield
+    finally:
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
+        logger.info("Score sync: background loop stopped")
+
 
 app = FastAPI(
     title="World Cup Prediction Game",
@@ -18,6 +36,7 @@ app = FastAPI(
     version="1.0.0",
     docs_url="/docs" if settings.DEBUG else None,
     redoc_url="/redoc" if settings.DEBUG else None,
+    lifespan=lifespan,
 )
 
 # ── CORS ───────────────────────────────────────────────────────────────────────

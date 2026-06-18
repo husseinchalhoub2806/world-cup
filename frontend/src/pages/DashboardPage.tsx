@@ -15,14 +15,15 @@ export default function DashboardPage() {
   const { user } = useAuthStore();
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
 
-  const { data: matches = [] }     = useQuery({ queryKey: ["matches"],     queryFn: matchesApi.list });
-  const { data: predictions = [] } = useQuery({ queryKey: ["predictions"], queryFn: predictionsApi.mine });
-  const { data: leaderboard }      = useQuery({ queryKey: ["leaderboard"], queryFn: leaderboardApi.get });
+  const { data: matches = [] }     = useQuery({ queryKey: ["matches"],     queryFn: matchesApi.list,      refetchInterval: 30_000 });
+  const { data: predictions = [] } = useQuery({ queryKey: ["predictions"], queryFn: predictionsApi.mine,  refetchInterval: 30_000 });
+  const { data: leaderboard }      = useQuery({ queryKey: ["leaderboard"], queryFn: leaderboardApi.get,   refetchInterval: 30_000 });
 
   const predictionMap = new Map(predictions.map(p => [p.match_id, p]));
-  const myRank    = leaderboard?.entries.find(e => e.user_id === user?.id);
-  const upcoming  = matches.filter(m => m.status === "scheduled" && !isMatchLocked(m.match_datetime));
-  const recent    = matches.filter(m => m.status === "finished").slice(0, 3);
+  const myRank      = leaderboard?.entries.find(e => e.user_id === user?.id);
+  const live        = matches.filter(m => m.status === "live");
+  const upcoming    = matches.filter(m => m.status === "scheduled" && !isMatchLocked(m.match_datetime));
+  const recent      = matches.filter(m => m.status === "finished").slice(0, 3);
   const unpredicted = upcoming.filter(m => !predictionMap.has(m.id));
 
   return (
@@ -67,6 +68,21 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+
+      {/* Live matches */}
+      {live.length > 0 && (
+        <section>
+          <div className="flex items-center gap-2 mb-4">
+            <span className="badge-live">⚽ Live</span>
+            <h2 className="text-xl font-black" style={{ color: "#fff", textShadow: "0 2px 8px rgba(0,0,0,0.5)" }}>In Progress</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {live.map(match => (
+              <MatchCard key={match.id} match={match} prediction={predictionMap.get(match.id)} onPredict={setSelectedMatch} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Upcoming predictions */}
       {unpredicted.length > 0 && (

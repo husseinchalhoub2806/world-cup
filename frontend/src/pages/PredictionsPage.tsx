@@ -16,18 +16,20 @@ export default function PredictionsPage() {
   const { data: matches = [], isLoading } = useQuery({
     queryKey: ["matches"],
     queryFn: matchesApi.list,
+    refetchInterval: 30_000,
   });
 
   const { data: predictions = [] } = useQuery({
     queryKey: ["predictions"],
     queryFn: predictionsApi.mine,
+    refetchInterval: 30_000,
   });
 
   const predictionMap = new Map(predictions.map((p) => [p.match_id, p]));
 
   const filtered = matches.filter((m) => {
     if (filter === "unpredicted") return !predictionMap.has(m.id) && m.status !== "finished";
-    if (filter === "predicted") return predictionMap.has(m.id);
+    if (filter === "predicted") return predictionMap.has(m.id) && m.status !== "finished";
     if (filter === "finished") return m.status === "finished";
     return true;
   });

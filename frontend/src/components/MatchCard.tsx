@@ -65,7 +65,7 @@ export default function MatchCard({ match, prediction, onPredict }: Props) {
   const [showPredictions, setShowPredictions] = useState(false);
   const locked   = isMatchLocked(match.match_datetime);
   const canPredict = (!locked && match.status === "scheduled") || match.status === "live";
-  const showResult = match.status === "finished" && match.score_team1 !== null;
+  const showResult = (match.status === "finished" || match.status === "live") && match.score_team1 !== null;
   const isLive   = match.status === "live";
   const canViewPredictions = locked && match.status !== "cancelled";
 
@@ -95,7 +95,11 @@ export default function MatchCard({ match, prediction, onPredict }: Props) {
           {showResult ? (
             <div
               className="rounded-xl px-4 py-2 min-w-[88px]"
-              style={{ background: "linear-gradient(135deg,#1d4ed8 0%,#3b82f6 100%)" }}
+              style={{
+                background: isLive
+                  ? "linear-gradient(135deg,#f97316 0%,#ea580c 100%)"
+                  : "linear-gradient(135deg,#1d4ed8 0%,#3b82f6 100%)",
+              }}
             >
               <span className="font-black text-2xl text-white">
                 {match.score_team1} – {match.score_team2}
