@@ -1,5 +1,5 @@
 #!/bin/bash
-set -euo pipefail
+set -eu
 
 COMPOSE="docker compose -f docker-compose.prod.yml"
 
