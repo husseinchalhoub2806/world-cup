@@ -1,18 +1,16 @@
 """
 Leaderboard ranking rules:
   1. Total points (DESC)
-  2. Earliest prediction submitted (ASC) — tiebreaker
-  3. Jokers used (ASC) — tiebreaker; fewer jokers = higher rank
-  4. Nickname alphabetically (ASC) — final tiebreaker
+  2. Jokers used (ASC) — tiebreaker; fewer jokers = higher rank
+  3. Nickname alphabetically (ASC) — final tiebreaker
 
 Special titles:
   - Rank #1: "El Magnifico"
   - Last place (when ≥2 players): "Abou sha7ata"
 """
-import datetime
+from sqlalchemy import Integer, cast, func, select
 from typing import Optional
 
-from sqlalchemy import Integer, cast, func, select
 from sqlalchemy.orm import Session
 
 from app.models.prediction import Prediction
@@ -27,7 +25,6 @@ def get_leaderboard(db: Session) -> LeaderboardResponse:
             User.nickname,
             User.real_name,
             func.coalesce(func.sum(Prediction.points_earned), 0).label("total_points"),
-            func.min(Prediction.created_at).label("earliest_prediction"),
             func.count(Prediction.id).label("prediction_count"),
             func.coalesce(func.sum(cast(Prediction.joker_applied, Integer)), 0).label("jokers_used"),
         )
@@ -40,10 +37,7 @@ def get_leaderboard(db: Session) -> LeaderboardResponse:
 
     # Sort in Python for reliable multi-key tiebreaking
     def sort_key(row: tuple) -> tuple:
-        ep: Optional[datetime.datetime] = row.earliest_prediction
-        # Users with no predictions sort after those with predictions (at tiebreaker level)
-        ep_sort = ep if ep is not None else datetime.datetime.max
-        return (-row.total_points, ep_sort, int(row.jokers_used), row.nickname.lower())
+        return (-row.total_points, int(row.jokers_used), row.nickname.lower())
 
     sorted_rows = sorted(rows, key=sort_key)
     total = len(sorted_rows)
