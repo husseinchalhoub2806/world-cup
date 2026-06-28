@@ -2,7 +2,7 @@ import enum
 from datetime import datetime, timezone
 from typing import Optional
 
-from sqlalchemy import DateTime, Enum, Index, Integer, String
+from sqlalchemy import Boolean, DateTime, Enum, Index, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
@@ -29,6 +29,9 @@ class Match(Base):
     status: Mapped[MatchStatus] = mapped_column(
         Enum(MatchStatus), default=MatchStatus.scheduled, nullable=False, index=True
     )
+
+    # True for knockout-phase matches (R16, QF, SF, Final)
+    is_knockout: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
 
     # Set by admin when entering final result
     score_team1: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)

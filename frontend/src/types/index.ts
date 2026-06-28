@@ -19,6 +19,7 @@ export interface Match {
   team2: string;
   match_datetime: string; // ISO UTC string
   status: MatchStatus;
+  is_knockout: boolean;
   score_team1: number | null;
   score_team2: number | null;
   actual_winner: "team1" | "team2" | null;

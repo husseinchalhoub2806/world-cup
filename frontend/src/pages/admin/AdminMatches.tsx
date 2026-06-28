@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Download, Edit2, Plus, RefreshCw, Trash2, Trophy, X } from "lucide-react";
+import { Check, Download, Edit2, Flame, Plus, RefreshCw, Trash2, Trophy, X } from "lucide-react";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import toast from "react-hot-toast";
@@ -306,6 +306,13 @@ export default function AdminMatches() {
     onError: (err) => toast.error(getErrorMessage(err)),
   });
 
+  const toggleKnockoutMutation = useMutation({
+    mutationFn: ({ matchId, is_knockout }: { matchId: number; is_knockout: boolean }) =>
+      adminApi.updateMatch(matchId, { is_knockout }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-matches"] }),
+    onError: (err) => toast.error(getErrorMessage(err)),
+  });
+
   const statusColors: Record<string, string> = {
     draft: "bg-blue-900/60 text-blue-300 text-xs px-2.5 py-0.5 rounded-full",
     scheduled: "badge-scheduled",
@@ -436,6 +443,11 @@ export default function AdminMatches() {
                           {match.team1} vs {match.team2}
                         </span>
                         <span className={statusColors[match.status]}>{match.status}</span>
+                        {match.is_knockout && (
+                          <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: "rgba(249,115,22,0.12)", color: "#ea580c", border: "1px solid rgba(249,115,22,0.3)" }}>
+                            🔥 Knockout
+                          </span>
+                        )}
                       </div>
                       <div className="text-xs text-gray-500">
                         {formatMatchDateTime(match.match_datetime)}
@@ -447,6 +459,18 @@ export default function AdminMatches() {
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        onClick={() => toggleKnockoutMutation.mutate({ matchId: match.id, is_knockout: !match.is_knockout })}
+                        disabled={toggleKnockoutMutation.isPending}
+                        title={match.is_knockout ? "Mark as group stage" : "Mark as knockout"}
+                        className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg transition-colors"
+                        style={match.is_knockout
+                          ? { background: "rgba(249,115,22,0.15)", color: "#f97316" }
+                          : { background: "rgba(107,114,128,0.08)", color: "#6b7280" }
+                        }
+                      >
+                        <Flame size={13} />
+                      </button>
                       {match.status !== "cancelled" && match.status !== "draft" && (
                         <button
                           onClick={() => setResultMatch(match)}

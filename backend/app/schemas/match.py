@@ -10,6 +10,7 @@ class MatchCreate(BaseModel):
     team1: str
     team2: str
     match_datetime: datetime  # Caller provides UTC datetime
+    is_knockout: bool = False
 
     @field_validator("team1", "team2")
     @classmethod
@@ -36,6 +37,7 @@ class MatchUpdate(BaseModel):
     team2: Optional[str] = None
     match_datetime: Optional[datetime] = None
     status: Optional[MatchStatus] = None
+    is_knockout: Optional[bool] = None
 
 
 class MatchResultInput(BaseModel):
@@ -59,6 +61,7 @@ class MatchResponse(BaseModel):
     team2: str
     match_datetime: datetime
     status: MatchStatus
+    is_knockout: bool
     score_team1: Optional[int]
     score_team2: Optional[int]
     actual_winner: Optional[str] = None

@@ -167,6 +167,7 @@ def import_matches_from_api(
             team1=fixture["team1"],
             team2=fixture["team2"],
             match_datetime=fixture["match_datetime"],
+            is_knockout=fixture.get("is_knockout", False),
         )
         imported += 1
 

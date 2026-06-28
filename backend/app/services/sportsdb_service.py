@@ -75,6 +75,7 @@ def fetch_world_cup_fixtures() -> list[dict]:
                 "score_team2": _parse_score(event.get("intAwayScore")),
                 "is_final": _is_final_status(event.get("strStatus", "")),
                 "actual_winner": _extract_actual_winner(event),
+                "is_knockout": _is_knockout_round(event.get("strRound", "")),
             }
         )
 
@@ -89,6 +90,20 @@ def fetch_world_cup_fixtures() -> list[dict]:
 
 # TheSportsDB status values that indicate the match result is final
 _FINAL_STATUSES = {"Match Finished", "FT", "AET", "PEN", "AP"}
+
+# Substrings that identify a knockout-phase round (case-insensitive)
+_KNOCKOUT_ROUND_KEYWORDS = {
+    "round of 16", "round of 32", "2nd round", "3rd round",
+    "quarter-final", "quarter final", "quarterfinal",
+    "semi-final", "semi final", "semifinal",
+    "3rd place", "third place",
+    "final",
+}
+
+
+def _is_knockout_round(round_str: str) -> bool:
+    r = round_str.lower().strip()
+    return any(kw in r for kw in _KNOCKOUT_ROUND_KEYWORDS)
 
 
 def _is_final_status(status: str) -> bool:

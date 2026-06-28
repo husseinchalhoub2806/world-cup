@@ -50,6 +50,7 @@ def create_match(db: Session, data: MatchCreate) -> Match:
         team2=data.team2,
         match_datetime=data.match_datetime,
         status=MatchStatus.scheduled,
+        is_knockout=data.is_knockout,
     )
     db.add(match)
     db.commit()
@@ -63,6 +64,7 @@ def create_draft_match(
     team1: str,
     team2: str,
     match_datetime: datetime,
+    is_knockout: bool = False,
 ) -> Match:
     match = Match(
         team1=team1,
@@ -70,6 +72,7 @@ def create_draft_match(
         match_datetime=match_datetime,
         status=MatchStatus.draft,
         external_id=external_id,
+        is_knockout=is_knockout,
     )
     db.add(match)
     db.commit()
