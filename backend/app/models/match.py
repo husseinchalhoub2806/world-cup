@@ -33,6 +33,8 @@ class Match(Base):
     # Set by admin when entering final result
     score_team1: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     score_team2: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    # Explicit winner for knockout matches (overrides score-derived winner; supports penalty shootouts)
+    actual_winner: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(timezone.utc), nullable=False

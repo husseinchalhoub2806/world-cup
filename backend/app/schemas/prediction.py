@@ -19,18 +19,25 @@ class PredictionCreate(BaseModel):
             raise ValueError("Predicted score must be between 0 and 30")
         return v
 
+    @field_validator("predicted_winner")
+    @classmethod
+    def no_tie_allowed(cls, v: PredictedWinner) -> PredictedWinner:
+        if v == PredictedWinner.tie:
+            raise ValueError("Tie predictions are not allowed — pick a winner")
+        return v
+
     @model_validator(mode="after")
     def winner_consistent_with_score(self) -> "PredictionCreate":
         s1 = self.predicted_score_team1
         s2 = self.predicted_score_team2
         w = self.predicted_winner
 
-        if w == PredictedWinner.team1 and s1 <= s2:
-            raise ValueError("If predicting team1 wins, score must have team1 scoring more goals")
-        if w == PredictedWinner.team2 and s2 <= s1:
-            raise ValueError("If predicting team2 wins, score must have team2 scoring more goals")
-        if w == PredictedWinner.tie and s1 != s2:
-            raise ValueError("If predicting a tie, both teams must have the same score")
+        # Only reject when the picked team is strictly losing on score.
+        # Equal scores are allowed (match may go to penalties).
+        if w == PredictedWinner.team1 and s1 < s2:
+            raise ValueError("Predicted winner is team1 but their score is lower — fix the score or change your pick")
+        if w == PredictedWinner.team2 and s2 < s1:
+            raise ValueError("Predicted winner is team2 but their score is lower — fix the score or change your pick")
         return self
 
 

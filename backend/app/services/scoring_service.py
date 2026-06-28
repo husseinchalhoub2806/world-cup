@@ -1,14 +1,15 @@
 """
-Scoring rules:
-  - Correct winner/tie prediction:              +1 point
-  - Correct winner/tie AND exact score:         +3 points total (+2 bonus)
-  - Wrong winner prediction:                     0 points
+Scoring rules (finals mode):
+  - Correct winner:                          +1 point
+  - Correct winner AND exact score:          +3 points total (+2 bonus)
+  - Wrong winner:                             0 points
 
-actual_winner is derived from the final score:
-  score_team1 > score_team2 → "team1"
-  score_team1 < score_team2 → "team2"
-  score_team1 == score_team2 → "tie"
+Winner resolution order:
+  1. match.actual_winner if explicitly set (supports penalty shootouts)
+  2. Derived from score (team1 > team2 → team1, etc.)
 """
+from typing import Optional
+
 from loguru import logger
 from sqlalchemy.orm import Session
 
@@ -25,17 +26,29 @@ def _derive_winner(score_team1: int, score_team2: int) -> PredictedWinner:
     return PredictedWinner.tie
 
 
+def _resolve_actual_winner(
+    actual_score_team1: int,
+    actual_score_team2: int,
+    actual_winner: Optional[str],
+) -> PredictedWinner:
+    if actual_winner == "team1":
+        return PredictedWinner.team1
+    if actual_winner == "team2":
+        return PredictedWinner.team2
+    return _derive_winner(actual_score_team1, actual_score_team2)
+
+
 def calculate_prediction_points(
     prediction: Prediction,
     actual_score_team1: int,
     actual_score_team2: int,
+    actual_winner: Optional[str] = None,
 ) -> int:
-    actual_winner = _derive_winner(actual_score_team1, actual_score_team2)
+    resolved_winner = _resolve_actual_winner(actual_score_team1, actual_score_team2, actual_winner)
 
-    if prediction.predicted_winner != actual_winner:
+    if prediction.predicted_winner != resolved_winner:
         return 0
 
-    # Correct winner — check for exact score bonus
     if (
         prediction.predicted_score_team1 == actual_score_team1
         and prediction.predicted_score_team2 == actual_score_team2
@@ -60,13 +73,16 @@ def score_match(db: Session, match: Match) -> int:
 
     for prediction in predictions:
         points = calculate_prediction_points(
-            prediction, match.score_team1, match.score_team2
+            prediction,
+            match.score_team1,
+            match.score_team2,
+            match.actual_winner,
         )
         if prediction.joker_applied:
             points *= 2
         prediction.points_earned = points
         logger.debug(
-            "Match {} | User {} | Predicted {}-{} ({}) | Actual {}-{} | Points: {}",
+            "Match {} | User {} | Predicted {}-{} ({}) | Actual {}-{} (winner={}) | Points: {}",
             match.id,
             prediction.user_id,
             prediction.predicted_score_team1,
@@ -74,15 +90,17 @@ def score_match(db: Session, match: Match) -> int:
             prediction.predicted_winner,
             match.score_team1,
             match.score_team2,
+            match.actual_winner,
             points,
         )
 
     db.commit()
     logger.info(
-        "Match {} scored: {} predictions processed. Result: {}-{}.",
+        "Match {} scored: {} predictions processed. Result: {}-{} (winner={}).",
         match.id,
         len(predictions),
         match.score_team1,
         match.score_team2,
+        match.actual_winner,
     )
     return len(predictions)

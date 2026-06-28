@@ -21,6 +21,7 @@ export interface Match {
   status: MatchStatus;
   score_team1: number | null;
   score_team2: number | null;
+  actual_winner: "team1" | "team2" | null;
   external_id: string | null;
   created_at: string;
 }

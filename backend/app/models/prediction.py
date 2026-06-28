@@ -19,7 +19,7 @@ class Prediction(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    match_id: Mapped[int] = mapped_column(ForeignKey("matches.id", ondelete="CASCADE"), nullable=False, index=True)
+    match_id: Mapped[int] = mapped_column(ForeignKey("matches.id", ondelete="CASCADE"), nullable=False)
 
     predicted_winner: Mapped[PredictedWinner] = mapped_column(Enum(PredictedWinner), nullable=False)
     predicted_score_team1: Mapped[int] = mapped_column(Integer, nullable=False)

@@ -213,11 +213,11 @@ def import_results_from_api(
             continue
 
         if is_final:
-            match = set_match_result(db, match, score1, score2)
+            match = set_match_result(db, match, score1, score2, fixture.get("actual_winner"))
             scored_count = score_match(db, match)
             logger.info(
-                "Admin {} finalised match {} ({} vs {}): {}-{}. Scored {} predictions.",
-                admin.nickname, match.id, match.team1, match.team2, score1, score2, scored_count,
+                "Admin {} finalised match {} ({} vs {}): {}-{} (winner={}). Scored {} predictions.",
+                admin.nickname, match.id, match.team1, match.team2, score1, score2, match.actual_winner, scored_count,
             )
         else:
             was_finished = match.status == MS.finished
@@ -299,13 +299,13 @@ def enter_match_result(
             detail="Cannot set result for a cancelled or draft match",
         )
 
-    match = set_match_result(db, match, result.score_team1, result.score_team2)
+    match = set_match_result(db, match, result.score_team1, result.score_team2, result.actual_winner)
 
     # Auto-score all predictions for this match
     scored_count = score_match(db, match)
     logger.info(
-        "Admin {} entered result for match {}: {}-{}. Scored {} predictions.",
-        admin.nickname, match_id, result.score_team1, result.score_team2, scored_count,
+        "Admin {} entered result for match {}: {}-{} (winner={}). Scored {} predictions.",
+        admin.nickname, match_id, result.score_team1, result.score_team2, match.actual_winner, scored_count,
     )
     return match
 

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, field_validator
 
@@ -41,6 +41,7 @@ class MatchUpdate(BaseModel):
 class MatchResultInput(BaseModel):
     score_team1: int
     score_team2: int
+    actual_winner: Optional[Literal["team1", "team2"]] = None
 
     @field_validator("score_team1", "score_team2")
     @classmethod
@@ -60,6 +61,7 @@ class MatchResponse(BaseModel):
     status: MatchStatus
     score_team1: Optional[int]
     score_team2: Optional[int]
+    actual_winner: Optional[str] = None
     external_id: Optional[str] = None
     created_at: datetime
 

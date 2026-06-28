@@ -74,6 +74,7 @@ def fetch_world_cup_fixtures() -> list[dict]:
                 "score_team1": _parse_score(event.get("intHomeScore")),
                 "score_team2": _parse_score(event.get("intAwayScore")),
                 "is_final": _is_final_status(event.get("strStatus", "")),
+                "actual_winner": _extract_actual_winner(event),
             }
         )
 
@@ -92,6 +93,31 @@ _FINAL_STATUSES = {"Match Finished", "FT", "AET", "PEN", "AP"}
 
 def _is_final_status(status: str) -> bool:
     return status.strip() in _FINAL_STATUSES
+
+
+def _extract_actual_winner(event: dict) -> Optional[str]:
+    """
+    Returns "team1", "team2", or None.
+    For penalty matches TheSportsDB provides intHomeScorePenalty / intAwayScorePenalty.
+    For all other matches the winner is derived from the score, so None is correct.
+    """
+    status = event.get("strStatus", "").strip()
+    if status not in ("PEN", "AP"):
+        return None
+
+    home_pen = _parse_score(event.get("intHomeScorePenalty"))
+    away_pen = _parse_score(event.get("intAwayScorePenalty"))
+    if home_pen is not None and away_pen is not None:
+        if home_pen > away_pen:
+            return "team1"
+        if away_pen > home_pen:
+            return "team2"
+
+    logger.warning(
+        "Penalty match (event={}) has no penalty scores — actual_winner not set; admin must enter manually.",
+        event.get("idEvent"),
+    )
+    return None
 
 
 def _parse_score(value) -> Optional[int]:

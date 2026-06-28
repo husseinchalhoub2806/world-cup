@@ -115,12 +115,20 @@ def set_match_live_score(
 
 
 def set_match_result(
-    db: Session, match: Match, score_team1: int, score_team2: int
+    db: Session,
+    match: Match,
+    score_team1: int,
+    score_team2: int,
+    actual_winner: Optional[str] = None,
 ) -> Match:
     """Set the final score and mark the match finished. Caller must invoke score_match afterwards."""
     match.score_team1 = score_team1
     match.score_team2 = score_team2
     match.status = MatchStatus.finished
+    if actual_winner is not None:
+        match.actual_winner = actual_winner
+    elif score_team1 != score_team2:
+        match.actual_winner = "team1" if score_team1 > score_team2 else "team2"
     db.commit()
     db.refresh(match)
     return match

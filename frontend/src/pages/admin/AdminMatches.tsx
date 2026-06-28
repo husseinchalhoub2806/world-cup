@@ -117,17 +117,27 @@ function MatchForm({ onClose, existing }: { onClose: () => void; existing?: Matc
 
 function ResultForm({ match, onClose }: { match: Match; onClose: () => void }) {
   const queryClient = useQueryClient();
-  const { register, handleSubmit, formState: { errors } } = useForm<ResultFormData>({
+  const [actualWinner, setActualWinner] = useState<"team1" | "team2" | null>(
+    match.actual_winner ?? null
+  );
+  const { register, handleSubmit, watch } = useForm<ResultFormData>({
     defaultValues: {
       score_team1: match.score_team1 ?? 0,
       score_team2: match.score_team2 ?? 0,
     },
   });
 
+  const s1 = Number(watch("score_team1"));
+  const s2 = Number(watch("score_team2"));
+  const scoreConflict =
+    (actualWinner === "team1" && s1 < s2) ||
+    (actualWinner === "team2" && s2 < s1);
+
   const mutation = useMutation({
     mutationFn: (data: ResultFormData) => adminApi.enterResult(match.id, {
       score_team1: Number(data.score_team1),
       score_team2: Number(data.score_team2),
+      actual_winner: actualWinner!,
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-matches"] });
@@ -143,7 +153,8 @@ function ResultForm({ match, onClose }: { match: Match; onClose: () => void }) {
       <div className="card w-full max-w-md">
         <h2 className="font-bold text-xl text-white mb-2">Enter Result</h2>
         <p className="text-gray-400 text-sm mb-6">{match.team1} vs {match.team2}</p>
-        <form onSubmit={handleSubmit((d) => mutation.mutate(d))} className="space-y-4">
+        <form onSubmit={handleSubmit((d) => !scoreConflict && actualWinner && mutation.mutate(d))} className="space-y-4">
+          {/* Score inputs */}
           <div className="flex items-center gap-4">
             <div className="flex-1">
               <label className="label">{match.team1}</label>
@@ -167,12 +178,60 @@ function ResultForm({ match, onClose }: { match: Match; onClose: () => void }) {
               />
             </div>
           </div>
+
+          {/* Winner selection */}
+          <div>
+            <label className="label mb-2">Winner (excl. penalties)</label>
+            <div className="grid grid-cols-2 gap-2">
+              {(["team1", "team2"] as const).map((side) => {
+                const teamName = side === "team1" ? match.team1 : match.team2;
+                const selected = actualWinner === side;
+                return (
+                  <button
+                    key={side}
+                    type="button"
+                    onClick={() => setActualWinner(side)}
+                    className="rounded-lg py-2.5 px-3 font-bold text-sm transition-all border-2"
+                    style={selected ? {
+                      background: "rgba(250,204,21,0.15)",
+                      borderColor: "#ca8a04",
+                      color: "#ca8a04",
+                    } : {
+                      background: "rgba(107,114,128,0.06)",
+                      borderColor: "rgba(107,114,128,0.2)",
+                      color: "#6b7280",
+                    }}
+                  >
+                    {selected && "✓ "}{teamName}
+                  </button>
+                );
+              })}
+            </div>
+            {!actualWinner && (
+              <p className="text-xs text-amber-500 mt-1.5">Select the winner to continue</p>
+            )}
+            {scoreConflict && (
+              <p className="text-xs text-red-400 mt-1.5">
+                {actualWinner === "team1" ? match.team1 : match.team2} can't win with a lower score
+              </p>
+            )}
+            {s1 === s2 && actualWinner && (
+              <p className="text-xs text-gray-400 mt-1.5">
+                Equal score — winner decided by penalties ({actualWinner === "team1" ? match.team1 : match.team2})
+              </p>
+            )}
+          </div>
+
           <p className="text-xs text-gray-500">
-            This will mark the match as finished and automatically calculate points for all predictions.
+            Marks match as finished and auto-calculates points. Enter score excluding penalties.
           </p>
           <div className="flex gap-3">
             <button type="button" onClick={onClose} className="btn-secondary flex-1">Cancel</button>
-            <button type="submit" disabled={mutation.isPending} className="btn-gold flex-1">
+            <button
+              type="submit"
+              disabled={mutation.isPending || !actualWinner || scoreConflict}
+              className="btn-gold flex-1"
+            >
               {mutation.isPending ? "Saving..." : "Enter Result"}
             </button>
           </div>

@@ -22,6 +22,7 @@ export interface MatchUpdateInput {
 export interface MatchResultInput {
   score_team1: number;
   score_team2: number;
+  actual_winner: "team1" | "team2";
 }
 
 export const adminApi = {

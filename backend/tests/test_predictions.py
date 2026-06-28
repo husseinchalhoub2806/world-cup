@@ -62,8 +62,8 @@ def test_prediction_inconsistent_score_winner(client, auth_headers, db):
     match = make_match(db)
     bad_prediction = {
         "predicted_winner": "team1",
-        "predicted_score_team1": 1,  # team1 can't win if scores are equal
-        "predicted_score_team2": 1,
+        "predicted_score_team1": 0,  # team1 can't win when strictly losing on score
+        "predicted_score_team2": 2,
     }
     resp = client.post(f"/api/v1/predictions/{match.id}", json=bad_prediction, headers=auth_headers)
     assert resp.status_code == 422
@@ -78,14 +78,14 @@ def test_get_my_predictions(client, auth_headers, db):
 
 
 def test_match_not_visible_before_window(client, auth_headers, db):
-    match = make_match(db, hours_from_now=24)  # 24h away — outside 12h window
+    match = make_match(db, hours_from_now=241)  # 241h away — outside 240h window
     resp = client.get("/api/v1/matches", headers=auth_headers)
     match_ids = [m["id"] for m in resp.json()]
     assert match.id not in match_ids
 
 
 def test_match_visible_within_window(client, auth_headers, db):
-    match = make_match(db, hours_from_now=6)  # 6h away — inside 12h window
+    match = make_match(db, hours_from_now=6)  # 6h away — inside 240h window
     resp = client.get("/api/v1/matches", headers=auth_headers)
     match_ids = [m["id"] for m in resp.json()]
     assert match.id in match_ids

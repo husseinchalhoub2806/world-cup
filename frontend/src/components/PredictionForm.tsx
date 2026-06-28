@@ -17,6 +17,9 @@ export default function PredictionForm({ match, existing, onClose }: Props) {
   const queryClient = useQueryClient();
   const [score1, setScore1] = useState(existing?.predicted_score_team1 ?? 0);
   const [score2, setScore2] = useState(existing?.predicted_score_team2 ?? 0);
+  const [winner, setWinner] = useState<"team1" | "team2" | null>(
+    existing && existing.predicted_winner !== "tie" ? existing.predicted_winner : null
+  );
   const [useJoker, setUseJoker] = useState(existing?.joker_applied ?? false);
 
   const { data: currentUser } = useQuery({
@@ -25,17 +28,20 @@ export default function PredictionForm({ match, existing, onClose }: Props) {
     staleTime: 30_000,
   });
 
-  const derivedWinner: PredictedWinner =
-    score1 > score2 ? "team1" : score2 > score1 ? "team2" : "tie";
-
-  // Joker already applied to this prediction counts as "used", not "available"
-  const availableJokers = (currentUser?.joker_balance ?? 0);
+  const availableJokers = currentUser?.joker_balance ?? 0;
   const canToggleJoker = availableJokers > 0 || (existing?.joker_applied ?? false);
+
+  // Validation: only invalid if the picked team's score is strictly less than the opponent's
+  const scoreConflict =
+    (winner === "team1" && score1 < score2) ||
+    (winner === "team2" && score2 < score1);
+
+  const canSubmit = winner !== null && !scoreConflict;
 
   const mutation = useMutation({
     mutationFn: () =>
       predictionsApi.submit(match.id, {
-        predicted_winner: derivedWinner,
+        predicted_winner: winner as PredictedWinner,
         predicted_score_team1: score1,
         predicted_score_team2: score2,
         joker_applied: useJoker,
@@ -55,8 +61,6 @@ export default function PredictionForm({ match, existing, onClose }: Props) {
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
   }, [onClose]);
-
-  const winnerLabel = derivedWinner === "team1" ? match.team1 : derivedWinner === "team2" ? match.team2 : "Tie 🤝";
 
   const ScoreButton = ({ onClick, children }: { onClick: () => void; children: string }) => (
     <button
@@ -85,16 +89,50 @@ export default function PredictionForm({ match, existing, onClose }: Props) {
 
         {/* Match banner */}
         <div
-          className="rounded-xl p-4 mb-6 text-center"
+          className="rounded-xl p-4 mb-5 text-center"
           style={{ background: "linear-gradient(135deg,#1e3a8a 0%,#2563eb 100%)" }}
         >
           <p className="text-blue-200 text-xs mb-1 font-semibold uppercase tracking-wider">Match</p>
           <p className="font-black text-white text-lg">{match.team1} vs {match.team2}</p>
         </div>
 
+        {/* Winner selection */}
+        <div className="mb-5">
+          <p className="label text-center mb-3">Who will win?</p>
+          <div className="grid grid-cols-2 gap-3">
+            {(["team1", "team2"] as const).map((side) => {
+              const teamName = side === "team1" ? match.team1 : match.team2;
+              const selected = winner === side;
+              return (
+                <button
+                  key={side}
+                  type="button"
+                  onClick={() => setWinner(side)}
+                  className="rounded-xl py-3 px-4 font-black text-base transition-all duration-150 border-2"
+                  style={selected ? {
+                    background: "linear-gradient(135deg,#f97316 0%,#ea580c 100%)",
+                    borderColor: "#f97316",
+                    color: "#fff",
+                    boxShadow: "0 0 16px rgba(249,115,22,0.45)",
+                  } : {
+                    background: "rgba(249,115,22,0.05)",
+                    borderColor: "rgba(249,115,22,0.2)",
+                    color: "#374151",
+                  }}
+                >
+                  {selected && <span className="mr-1">✓</span>}{teamName}
+                </button>
+              );
+            })}
+          </div>
+          {!winner && (
+            <p className="text-xs text-center text-gray-400 mt-2">Pick a team to continue</p>
+          )}
+        </div>
+
         {/* Score inputs */}
         <div className="mb-5">
-          <p className="label text-center mb-4">Enter your predicted final score</p>
+          <p className="label text-center mb-3">Score (excl. penalties)</p>
           <div className="flex items-center justify-center gap-6">
             {/* Team 1 */}
             <div className="flex flex-col items-center gap-2">
@@ -118,16 +156,19 @@ export default function PredictionForm({ match, existing, onClose }: Props) {
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Derived winner */}
-        <div
-          className="rounded-xl p-3 mb-5 text-center"
-          style={{ background: "rgba(249,115,22,0.08)", border: "1px solid rgba(249,115,22,0.25)" }}
-        >
-          <p className="text-sm text-gray-600">
-            Winner: <span className="font-black" style={{ color: "#f97316" }}>{winnerLabel}</span>
-          </p>
+          {scoreConflict && (
+            <div className="mt-3 rounded-lg px-3 py-2 text-center text-xs font-semibold"
+              style={{ background: "rgba(239,68,68,0.1)", color: "#dc2626", border: "1px solid rgba(239,68,68,0.25)" }}>
+              {winner === "team1" ? match.team1 : match.team2} can't win with a lower score — adjust the score or switch your pick
+            </div>
+          )}
+
+          {score1 === score2 && winner && (
+            <p className="text-xs text-center text-gray-400 mt-2">
+              Equal score — match goes to penalties, {winner === "team1" ? match.team1 : match.team2} wins
+            </p>
+          )}
         </div>
 
         {/* Points reminder */}
@@ -138,7 +179,7 @@ export default function PredictionForm({ match, existing, onClose }: Props) {
           </div>
           <div className="flex-1 rounded-xl p-3 text-center" style={{ background: "rgba(234,179,8,0.1)", border: "1px solid rgba(234,179,8,0.3)" }}>
             <p className="text-xs text-gray-500">Exact score</p>
-            <p className="font-black text-yellow-500 text-lg">{useJoker ? "6 pts" : "3 pts"}</p>
+            <p className="font-black text-yellow-500 text-lg">{useJoker ? "6 pts" : "+2 pts"}</p>
           </div>
         </div>
 
@@ -188,7 +229,11 @@ export default function PredictionForm({ match, existing, onClose }: Props) {
         {/* Actions */}
         <div className="flex gap-3">
           <button onClick={onClose} className="btn-secondary flex-1">Cancel</button>
-          <button onClick={() => mutation.mutate()} disabled={mutation.isPending} className="btn-primary flex-1">
+          <button
+            onClick={() => canSubmit && mutation.mutate()}
+            disabled={!canSubmit || mutation.isPending}
+            className="btn-primary flex-1"
+          >
             {mutation.isPending ? "Saving..." : existing ? "Update" : "Submit Prediction"}
           </button>
         </div>
