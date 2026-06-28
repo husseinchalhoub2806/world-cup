@@ -313,6 +313,9 @@ export default function AdminMatches() {
     onError: (err) => toast.error(getErrorMessage(err)),
   });
 
+  type FilterType = "all" | "draft" | "scheduled" | "live" | "finished" | "cancelled" | "knockout";
+  const [filter, setFilter] = useState<FilterType>("all");
+
   const statusColors: Record<string, string> = {
     draft: "bg-blue-900/60 text-blue-300 text-xs px-2.5 py-0.5 rounded-full",
     scheduled: "badge-scheduled",
@@ -321,8 +324,36 @@ export default function AdminMatches() {
     cancelled: "bg-gray-800 text-gray-500 text-xs px-2.5 py-0.5 rounded-full",
   };
 
-  const draftMatches = matches.filter((m) => m.status === "draft");
-  const regularMatches = matches.filter((m) => m.status !== "draft");
+  const allDrafts    = matches.filter((m) => m.status === "draft");
+  const allRegular   = matches.filter((m) => m.status !== "draft");
+
+  const draftMatches = (filter === "all" || filter === "draft") ? allDrafts : [];
+  const regularMatches = (() => {
+    if (filter === "all")       return allRegular;
+    if (filter === "draft")     return [];
+    if (filter === "knockout")  return allRegular.filter((m) => m.is_knockout);
+    return allRegular.filter((m) => m.status === filter);
+  })();
+
+  const counts: Record<FilterType, number> = {
+    all:       matches.length,
+    draft:     matches.filter((m) => m.status === "draft").length,
+    scheduled: matches.filter((m) => m.status === "scheduled").length,
+    live:      matches.filter((m) => m.status === "live").length,
+    finished:  matches.filter((m) => m.status === "finished").length,
+    cancelled: matches.filter((m) => m.status === "cancelled").length,
+    knockout:  matches.filter((m) => m.is_knockout && m.status !== "draft").length,
+  };
+
+  const FILTERS: { value: FilterType; label: string }[] = [
+    { value: "all",       label: "All" },
+    { value: "draft",     label: "Draft" },
+    { value: "scheduled", label: "Scheduled" },
+    { value: "live",      label: "Live" },
+    { value: "finished",  label: "Finished" },
+    { value: "cancelled", label: "Cancelled" },
+    { value: "knockout",  label: "🔥 Knockout" },
+  ];
 
   return (
     <div className="space-y-6">
@@ -355,6 +386,27 @@ export default function AdminMatches() {
             <span className="sm:hidden">Create</span>
           </button>
         </div>
+      </div>
+
+      {/* Filter bar */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {FILTERS.map(({ value, label }) => {
+          const active = filter === value;
+          const count = counts[value];
+          return (
+            <button
+              key={value}
+              onClick={() => setFilter(value)}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
+              style={active
+                ? { background: "#f97316", color: "#fff", boxShadow: "0 2px 10px rgba(249,115,22,0.4)" }
+                : { background: "rgba(255,255,255,0.85)", color: "#374151" }
+              }
+            >
+              {label}{count > 0 && <span className="ml-1.5 opacity-70">({count})</span>}
+            </button>
+          );
+        })}
       </div>
 
       {isLoading ? (
