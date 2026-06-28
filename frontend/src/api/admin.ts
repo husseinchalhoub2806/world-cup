@@ -17,6 +17,7 @@ export interface MatchUpdateInput {
   team2?: string;
   match_datetime?: string;
   status?: string;
+  is_knockout?: boolean;
 }
 
 export interface MatchResultInput {
