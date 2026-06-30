@@ -1,8 +1,9 @@
 """
-Scoring rules (finals mode):
-  - Correct winner:                          +1 point
-  - Correct winner AND exact score:          +3 points total (+2 bonus)
-  - Wrong winner:                             0 points
+Scoring rules:
+  - Correct winner AND exact score:          +3 points
+  - Correct winner only:                     +1 point
+  - Exact score, wrong winner:               +2 points
+  - Wrong winner, wrong score:                0 points
 
 Winner resolution order:
   1. match.actual_winner if explicitly set (supports penalty shootouts)
@@ -46,16 +47,19 @@ def calculate_prediction_points(
 ) -> int:
     resolved_winner = _resolve_actual_winner(actual_score_team1, actual_score_team2, actual_winner)
 
-    if prediction.predicted_winner != resolved_winner:
-        return 0
-
-    if (
+    correct_winner = prediction.predicted_winner == resolved_winner
+    exact_score = (
         prediction.predicted_score_team1 == actual_score_team1
         and prediction.predicted_score_team2 == actual_score_team2
-    ):
-        return 3  # 1 (winner) + 2 (exact score)
+    )
 
-    return 1  # Correct winner only
+    if correct_winner and exact_score:
+        return 3
+    if correct_winner:
+        return 1
+    if exact_score:
+        return 2
+    return 0
 
 
 def score_match(db: Session, match: Match) -> int:

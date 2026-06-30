@@ -36,10 +36,10 @@ class TestScoringRules:
         p = make_prediction("team2", 0, 2)
         assert calculate_prediction_points(p, 0, 2) == 3
 
-    def test_exact_score_but_wrong_winner_impossible(self):
-        """If exact score matches, winner always matches too."""
-        p = make_prediction("team1", 2, 1)
-        assert calculate_prediction_points(p, 2, 1) == 3
+    def test_exact_score_wrong_winner_gives_2(self):
+        """Exact score but wrong winner (e.g. predicted tie, went to penalties) → 2 pts."""
+        p = make_prediction("tie", 1, 1)
+        assert calculate_prediction_points(p, 1, 1, actual_winner="team1") == 2
 
     # Finals / penalty shootout: explicit actual_winner overrides score derivation
     def test_penalty_winner_team2_correct(self):
@@ -48,9 +48,9 @@ class TestScoringRules:
         assert calculate_prediction_points(p, 1, 1, actual_winner="team2") == 3
 
     def test_penalty_winner_team2_wrong_prediction(self):
-        """Score is tied 1-1, team2 wins on penalties — predicted team1."""
+        """Score is tied 1-1, team2 wins on penalties — predicted team1 with same score → 2 pts."""
         p = make_prediction("team1", 1, 1)
-        assert calculate_prediction_points(p, 1, 1, actual_winner="team2") == 0
+        assert calculate_prediction_points(p, 1, 1, actual_winner="team2") == 2
 
     def test_penalty_winner_correct_but_wrong_score(self):
         """Score 1-1, team2 wins — predicted team2 but different score."""

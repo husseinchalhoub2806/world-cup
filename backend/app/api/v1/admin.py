@@ -207,9 +207,14 @@ def import_results_from_api(
 
         is_final = fixture["is_final"]
         same_score = match.score_team1 == score1 and match.score_team2 == score2
+        # Derive effective winner from fixture (mirrors set_match_result logic)
+        fixture_winner = fixture.get("actual_winner") or (
+            "team1" if score1 > score2 else ("team2" if score2 > score1 else None)
+        )
+        same_winner = match.actual_winner == fixture_winner
 
-        # Skip only when already finished with the confirmed final score
-        if match.status == MS.finished and same_score and is_final:
+        # Skip only when already finished with the same score AND same winner
+        if match.status == MS.finished and same_score and same_winner and is_final:
             skipped += 1
             continue
 
