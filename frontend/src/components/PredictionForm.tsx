@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import type { Match, PredictedWinner, PredictionWithMatch } from "../types";
 import { predictionsApi } from "../api/predictions";
@@ -21,6 +21,8 @@ export default function PredictionForm({ match, existing, onClose }: Props) {
     existing && existing.predicted_winner !== "tie" ? existing.predicted_winner : null
   );
   const [useJoker, setUseJoker] = useState(existing?.joker_applied ?? false);
+  const [showRoast, setShowRoast] = useState(false);
+  const [showMercedes, setShowMercedes] = useState(false);
 
   const { data: currentUser } = useQuery({
     queryKey: ["me"],
@@ -61,6 +63,17 @@ export default function PredictionForm({ match, existing, onClose }: Props) {
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
   }, [onClose]);
+
+  const prevConflict = useRef(false);
+  useEffect(() => {
+    if (scoreConflict && !prevConflict.current) {
+      setShowRoast(true);
+      const t = setTimeout(() => setShowRoast(false), 2500);
+      prevConflict.current = true;
+      return () => clearTimeout(t);
+    }
+    if (!scoreConflict) prevConflict.current = false;
+  }, [scoreConflict]);
 
   const ScoreButton = ({ onClick, children }: { onClick: () => void; children: string }) => (
     <button
@@ -211,7 +224,12 @@ export default function PredictionForm({ match, existing, onClose }: Props) {
                 type="button"
                 onClick={() => {
                   if (!useJoker && availableJokers <= 0) return;
-                  setUseJoker(!useJoker);
+                  const next = !useJoker;
+                  setUseJoker(next);
+                  if (next) {
+                    setShowMercedes(true);
+                    setTimeout(() => setShowMercedes(false), 3000);
+                  }
                 }}
                 disabled={!useJoker && availableJokers <= 0}
                 className="relative inline-flex h-6 w-11 shrink-0 rounded-full transition-colors duration-200 focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed"
@@ -238,6 +256,34 @@ export default function PredictionForm({ match, existing, onClose }: Props) {
           </button>
         </div>
       </div>
+
+      {/* Mercedes joker popup */}
+      {showMercedes && (
+        <div className="fixed inset-0 flex items-center justify-center z-[60] pointer-events-none">
+          <img
+            src="/images/mercedes.png"
+            alt="mercedes"
+            className="w-64 rounded-2xl shadow-2xl animate-bounce-in"
+            style={{ pointerEvents: "auto" }}
+            onClick={() => setShowMercedes(false)}
+          />
+        </div>
+      )}
+
+      {/* Roast popup */}
+      {showRoast && (
+        <div
+          className="fixed inset-0 flex items-center justify-center z-[60] pointer-events-none"
+        >
+          <img
+            src="/images/enno_ente_lzake.png"
+            alt="إنوو إنت الذكي يعني؟"
+            className="w-64 rounded-2xl shadow-2xl animate-bounce-in"
+            style={{ pointerEvents: "auto" }}
+            onClick={() => setShowRoast(false)}
+          />
+        </div>
+      )}
     </div>
   );
 }
