@@ -62,9 +62,15 @@ npm test        # Vitest
 - **Prediction lock**: Server-side check — `now >= match.match_datetime` blocks submission. Users can create or update predictions up until kickoff.
 - **Score consistency**: `predicted_winner` must match the predicted scores (validated in `PredictionCreate` schema and enforced in `PredictionForm` by deriving winner from score inputs).
 - **Scoring trigger**: `POST /api/v1/admin/matches/{id}/result` sets scores + status=finished, then immediately calls `score_match()` to update all `prediction.points_earned`. Blocked for draft and cancelled matches.
-- **Points**: correct winner = 1pt; correct winner + exact score = 3pts; wrong = 0.
+- **Points**: correct winner + exact score = 3pts; exact score only (wrong winner) = 2pts; correct winner only = 1pt; wrong winner + wrong score = 0. The 2pt case matters for penalty shootout matches where the regulation score is tied — a player who nailed the score but picked the wrong side to go through still earns credit.
+- **Penalty shootout scoring**: `match.actual_winner` ("team1"/"team2") overrides the score-derived winner in `_resolve_actual_winner()`. When a match goes to penalties, `intHomeScore`/`intAwayScore` from TheSportsDB reflect the regulation/ET score (tied); the shootout winner is read from `intHomeScorePenalty`/`intAwayScorePenalty` and stored as `actual_winner`.
 - **Leaderboard tiebreaker**: total_points DESC → earliest prediction created_at ASC (NULL last) → nickname ASC. Applied in Python after SQL aggregation.
 - **Titles**: rank 1 = "El Magnifico"; last rank (when ≥2 players) = "Abou sha7ata".
+
+## Known Gotchas
+
+- **Penalty re-import skip**: `import-results` skips already-finished matches only when `score`, `actual_winner`, AND `is_final` all match the stored values. The skip condition in `admin.py` derives the effective winner from the fixture (same logic as `set_match_result`) so a stale `actual_winner=None` (TheSportsDB sometimes populates penalty scores on a slight delay) causes a re-score on the next import rather than silently staying wrong.
+- **Tests must run inside Docker**: local Python won't have the deps (`jose`, `passlib`, `loguru`, etc.). Use `docker compose exec backend python -m pytest …`.
 
 ## Match Import (TheSportsDB)
 
