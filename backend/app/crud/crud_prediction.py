@@ -39,13 +39,11 @@ def get_match_predictions(db: Session, match_id: int) -> list[Prediction]:
     )
 
 
-def get_all_predictions(db: Session, skip: int = 0, limit: int = 500) -> list[Prediction]:
+def get_all_predictions(db: Session) -> list[Prediction]:
     return (
         db.query(Prediction)
         .options(joinedload(Prediction.user), joinedload(Prediction.match))
         .order_by(Prediction.created_at.desc())
-        .offset(skip)
-        .limit(limit)
         .all()
     )
 
