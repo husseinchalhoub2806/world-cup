@@ -72,7 +72,12 @@ export default function MatchPredictionsModal({ match, onClose }: Props) {
               {/* Column headers */}
               <div className="flex items-center justify-between px-3 mb-1">
                 <span className="text-xs text-gray-400 font-semibold">Player</span>
-                <span className="text-xs text-gray-400 font-semibold">Prediction</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-gray-400 font-semibold">Prediction</span>
+                  {(match.status === "finished" || match.status === "live") && (
+                    <span className="text-xs text-gray-400 font-semibold w-10 text-right">Pts</span>
+                  )}
+                </div>
               </div>
               <div className="space-y-1.5">
                 {predictions.map((p, i) => (
@@ -81,9 +86,24 @@ export default function MatchPredictionsModal({ match, onClose }: Props) {
                     className="flex items-center justify-between py-2.5 px-3 rounded-xl bg-gray-50"
                   >
                     <span className="font-semibold text-sm text-gray-800">{p.nickname}</span>
-                    <span className="font-black text-sm text-gray-900">
-                      {p.predicted_score_team1} – {p.predicted_score_team2}
-                    </span>
+                    <div className="flex items-center gap-3">
+                      <span className="font-black text-sm text-gray-900">
+                        {p.predicted_score_team1} – {p.predicted_score_team2}
+                      </span>
+                      {match.status === "finished" && (
+                        <span className={`text-sm font-black w-10 text-right ${
+                          p.points_earned === 3 ? "text-green-600" :
+                          p.points_earned === 2 ? "text-blue-600" :
+                          p.points_earned === 1 ? "text-yellow-600" :
+                          "text-gray-400"
+                        }`}>
+                          {p.points_earned ?? 0} pts
+                        </span>
+                      )}
+                      {match.status === "live" && (
+                        <span className="text-xs font-semibold text-orange-500 w-10 text-right">Pending</span>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>

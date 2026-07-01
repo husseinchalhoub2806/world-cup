@@ -71,3 +71,4 @@ class MatchPredictionPublicResponse(BaseModel):
     predicted_score_team1: int
     predicted_score_team2: int
     predicted_winner: PredictedWinner
+    points_earned: Optional[int] = None

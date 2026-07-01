@@ -53,6 +53,7 @@ export interface MatchPredictionPublic {
   predicted_score_team1: number;
   predicted_score_team2: number;
   predicted_winner: PredictedWinner;
+  points_earned: number | null;
 }
 
 export interface LeaderboardEntry {

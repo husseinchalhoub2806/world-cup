@@ -68,6 +68,7 @@ def get_match_predictions_public(
             predicted_score_team1=p.predicted_score_team1,
             predicted_score_team2=p.predicted_score_team2,
             predicted_winner=p.predicted_winner,
+            points_earned=p.points_earned,
         )
         for p in predictions
     ]
