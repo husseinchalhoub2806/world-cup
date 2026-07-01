@@ -36,7 +36,15 @@ export default function MatchPredictionsModal({ match, onClose }: Props) {
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <div>
             <h2 className="font-black text-gray-900 text-sm">
-              {match.team1} <span className="text-gray-400 font-normal">vs</span> {match.team2}
+              {match.score_team1 !== null && match.score_team2 !== null ? (
+                <>
+                  {match.team1}{" "}
+                  <span className="text-gray-900">{match.score_team1} – {match.score_team2}</span>{" "}
+                  {match.team2}
+                </>
+              ) : (
+                <>{match.team1} <span className="text-gray-400 font-normal">vs</span> {match.team2}</>
+              )}
             </h2>
             <p className="text-xs text-gray-400 mt-0.5">Player predictions</p>
           </div>
